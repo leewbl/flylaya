@@ -1,0 +1,17 @@
+{
+  "config_id": "A_full",
+  "label": "full system: connectome brain + Laya intent layer",
+  "brain": "connectome",
+  "intent_source": "laya",
+  "laya": {
+    "endpoint": "http://127.0.0.1:8000/v1/systemone",
+    "decision_every_n_frames": 3,
+    "timeout_ms": 50,
+    "fallback_after_consecutive_failures": 3,
+    "fallback_intent": "rest_hover"
+  },
+  "intent_dwell_guard_s": 1.0,
+  "arena": {"size_cm": 100, "obstacle_columns": 7, "sun": "directional"},
+  "run": {"duration_s": 300, "bio_frame_hz": 10, "seeds": [11, 22, 33, 44, 55, 66, 77, 88, 99, 111]},
+  "logging": {"trajectory_jsonl": true, "laya_call_jsonl": true}
+}

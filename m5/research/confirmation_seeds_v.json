@@ -1,0 +1,50 @@
+{
+  "sealed_at": "2026-09-26",
+  "purpose": "M5-V vertical-dimension confirmation seeds (draw domain disjoint from M5 set 10000-99999 and exploration 1-9999)",
+  "n": 32,
+  "draw_range": [
+    200000,
+    300000
+  ],
+  "rng": "random.Random(20260926).sample(range(200000,300000),32), sorted",
+  "allocation": {
+    "V2_V3_confirmation": "seeds[0:20]",
+    "S4v_open": "seeds[20:30]",
+    "reserve": "seeds[30:32]"
+  },
+  "seeds": [
+    202072,
+    204735,
+    206078,
+    206891,
+    209556,
+    215102,
+    216857,
+    221391,
+    224225,
+    225340,
+    226356,
+    229582,
+    230020,
+    232322,
+    240608,
+    248673,
+    253592,
+    259131,
+    264920,
+    266270,
+    271224,
+    276030,
+    276845,
+    278846,
+    280178,
+    282204,
+    290281,
+    291299,
+    292079,
+    293779,
+    294350,
+    298133
+  ],
+  "sha256_of_payload_without_hash": "5057007ab6ffb831ee86451a4ddc6dcb95bb51214eef0eeee0f0f9689e9b3cdd"
+}

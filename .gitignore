@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# 重型数据与产物(不入库)
+laya-deploy/
+laya-mlx-deploy/
+laya-calib/
+myylaya/
+intent_log.jsonl
+det_a.json
+det_603_runC.txt
+m4/runs/
+m4/runs_iter1params/
+m4/iter1_*/
+m4/smoke_runs*/
+m4/replays/
+m5/runs_*/
+m6/runs_demo/
+*.mp4
+*.jsonl.gz
+
+# swarm 运行时(保留 tasks/blackboard 科学记录)
+.pi/swarm/runtime/
+.pi/swarm/events/
+.pi/swarm/claims/
+.pi/swarm/artifacts/
+
+# 运行时日志与会话状态
+.omx/
+laya-testbench/data/
+
+# 杂项
+.DS_Store
+*.log

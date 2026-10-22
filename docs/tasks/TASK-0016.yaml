@@ -1,0 +1,8 @@
+version: 1
+taskId: TASK-0016
+claimId: CLM-01M3A5N3W0AKAG9GDFM67YSMTK
+agent:
+  role: tester
+  instanceId: tester-01m37k0t3x0n8nb2q5b9cnm7q7
+pid: 33298
+claimedAt: 2026-09-24T16:58:19.904Z

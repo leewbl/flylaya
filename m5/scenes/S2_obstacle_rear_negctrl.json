@@ -1,0 +1,23 @@
+{
+  "schema_version": "flylaya.scene.v1",
+  "scene_id": "S2_obstacle_rear_negctrl",
+  "version": 1,
+  "arena_m": [1.0, 1.0, 1.0],
+  "duration_s": 30,
+  "decision_dt_s": 0.3,
+  "neural_dt_s": 0.1,
+  "start": {"position_m": [0.5, 0.42, 0.5], "yaw_deg": 90, "speed_m_s": 0.12},
+  "light": {"mode": "uniform", "level": 0.45},
+  "obstacles": [
+    {"id": "o1", "shape": "cylinder", "center_xy_m": [0.5, 0.1],
+     "radius_m": 0.04, "height_m": 0.65, "enabled": false}
+  ],
+  "events": [{"t_s": 5.0, "kind": "stimulus_on", "target": "o1"}],
+  "mirror_axis": "x",
+  "random_streams": ["scene", "controller", "neural", "motor"],
+  "windows": [
+    {"name": "baseline", "t_s": [0.0, 5.0]},
+    {"name": "observe", "t_s": [5.0, 30.0]}
+  ],
+  "expect": {"initial_turn": "none"}
+}

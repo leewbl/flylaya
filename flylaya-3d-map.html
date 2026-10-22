@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>果蝇在 Minecraft 三维地图 · Laya + 果蝇大脑双层控制</title>
+<style>
+  html,body{margin:0;background:#14171f;color:#e8eaf0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .frame{max-width:1280px;margin:18px auto;padding:0 12px}
+  svg{width:100%;height:auto;display:block;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5);touch-action:none}
+  .caption{padding:12px 6px;font-size:15px;line-height:1.7;color:#c8cedb}
+  .caption b{color:#8fc7ff}
+  .flow{stroke-dasharray:10 8;animation:march 1.1s linear infinite}
+  @keyframes march{to{stroke-dashoffset:-36}}
+  .node{animation:pulse 1.3s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+  #waterG{animation:shimmer 2.6s ease-in-out infinite}
+  @keyframes shimmer{0%,100%{opacity:.78}50%{opacity:.95}}
+  .halo{paint-order:stroke;stroke:#10131a;stroke-width:4px;stroke-linejoin:round}
+  .chip{transition:fill .25s}
+</style>
+</head>
+<body>
+<div class="frame">
+<svg id="scene" viewBox="0 0 1280 760" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5fb2ff"/><stop offset="1" stop-color="#cfeaff"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="760" fill="url(#sky)"/>
+
+  <!-- 光源（固定在屏幕右上，趋光意图朝这个方向飞） -->
+  <g id="sun">
+    <rect x="1090" y="52" width="80" height="80" fill="#ffd94d" stroke="#e6b422" stroke-width="4"/>
+    <rect x="1082" y="44" width="96" height="96" fill="none" stroke="#ffe98a" stroke-width="3" opacity=".6"/>
+    <g fill="#ffe98a">
+      <rect x="1126" y="18" width="12" height="12"/><rect x="1126" y="154" width="12" height="12"/>
+      <rect x="1056" y="86" width="12" height="12"/><rect x="1196" y="86" width="12" height="12"/>
+    </g>
+    <text class="halo" x="1130" y="160" font-size="13" fill="#e6b422" text-anchor="middle">光源方向</text>
+  </g>
+  <g fill="#ffffff" opacity=".92">
+    <g><rect x="120" y="88" width="120" height="26"/><rect x="146" y="62" width="70" height="26"/></g>
+    <g><rect x="420" y="136" width="150" height="26"/><rect x="452" y="110" width="80" height="26"/></g>
+  </g>
+
+  <!-- 三维世界（体素地图 + 果蝇），相机变换作用在这一层 -->
+  <g id="world">
+    <g id="terrain"></g>
+    <g id="waterG"></g>
+    <g id="treesG"></g>
+    <ellipse id="shadow" cx="0" cy="0" rx="20" ry="9" fill="#0a2035" opacity=".2"/>
+    <g id="fly">
+      <g id="flyBody">
+        <g id="wingBack"><ellipse cx="16" cy="-4" rx="20" ry="6" fill="#dfe9ff" opacity=".45" stroke="#9aa8c4" stroke-width="1"/></g>
+        <line x1="-26" y1="6" x2="-38" y2="16" stroke="#3a3a42" stroke-width="2"/>
+        <line x1="-18" y1="8" x2="-24" y2="20" stroke="#3a3a42" stroke-width="2"/>
+        <line x1="-10" y1="8" x2="-4" y2="20" stroke="#3a3a42" stroke-width="2"/>
+        <ellipse cx="8" cy="0" rx="24" ry="12" fill="#4a4a54" stroke="#2e2e36" stroke-width="2"/>
+        <path d="M4,-11 h5 v22 h-5 z M14,-11.5 h5 v23 h-5 z M24,-10 h4.5 v20 h-4.5 z" fill="#2e2e36" opacity=".8"/>
+        <ellipse cx="-18" cy="0" rx="15" ry="10" fill="#5a5a66" stroke="#2e2e36" stroke-width="2"/>
+        <circle cx="-38" cy="-2" r="9" fill="#4a4a54" stroke="#2e2e36" stroke-width="2"/>
+        <ellipse cx="-36" cy="-5" rx="7" ry="8" fill="#c03030"/>
+        <circle cx="-38" cy="-7" r="2" fill="#ff9090"/>
+        <g id="wingFront"><ellipse cx="16" cy="-6" rx="22" ry="7" fill="#ffffff" opacity=".55" stroke="#9aa8c4" stroke-width="1.5"/></g>
+        <path d="M-45,-6 q-8,-6 -14,-4 M-45,-3 q-9,-1 -15,4" stroke="#2e2e36" stroke-width="1.5" fill="none"/>
+      </g>
+      <text id="intentTag" class="halo" x="0" y="-52" font-size="17" font-weight="700" fill="#ffd166" text-anchor="middle">意图：探索巡航</text>
+    </g>
+  </g>
+
+  <!-- ============ 控制系统面板（屏幕层，不随相机缩放） ============ -->
+  <g id="panelLaya">
+    <rect x="36" y="30" width="308" height="188" rx="12" fill="#0f121acc" stroke="#3b4354" stroke-width="2"/>
+    <text x="56" y="60" font-size="19" font-weight="800" fill="#8fc7ff">Laya · 决策层（想干什么）</text>
+    <text x="56" y="80" font-size="12" fill="#9aa3b5">语言决策模型 · 每 0.3 秒读一次状态文字</text>
+    <g id="chips"></g>
+    <text x="56" y="176" font-size="12" fill="#9aa3b5">唤醒度 arousal</text>
+    <rect x="140" y="166" width="180" height="12" rx="6" fill="#232838"/>
+    <rect id="arousal" x="140" y="166" width="90" height="12" rx="6" fill="#ffb35c"/>
+  </g>
+
+  <g id="panelBrain">
+    <rect x="392" y="30" width="330" height="188" rx="12" fill="#0f121acc" stroke="#3b4354" stroke-width="2"/>
+    <text x="412" y="60" font-size="19" font-weight="800" fill="#9fe870">果蝇大脑 · 执行层（怎么飞）</text>
+    <text x="412" y="80" font-size="12" fill="#9aa3b5">全脑接线图仿真 · 166,700 神经元</text>
+    <g id="net"></g>
+    <text x="412" y="176" font-size="12" fill="#9aa3b5">DN 读出</text>
+    <rect x="470" y="166" width="110" height="7" fill="#232838"/><rect id="dnL" x="470" y="166" width="50" height="7" fill="#7fd1ff"/>
+    <text x="586" y="176" font-size="11" fill="#9aa3b5">左</text>
+    <rect x="606" y="166" width="110" height="7" fill="#232838"/><rect id="dnR" x="606" y="166" width="50" height="7" fill="#ff9f6e"/>
+    <text x="722" y="176" font-size="11" fill="#9aa3b5">右</text>
+  </g>
+
+  <g fill="none" stroke-width="3.5" marker-end="url(#arr)">
+    <path id="aState" class="flow" stroke="#ffd166" d="M 560 330 C 420 260, 300 300, 190 224"/>
+    <path id="aIntent" class="flow" stroke="#7fd1ff" d="M 348 124 L 388 124"/>
+    <path id="aMotor" class="flow" stroke="#ff9f6e" d="M 560 224 C 600 300, 660 330, 700 380"/>
+    <path id="aSense" class="flow" stroke="#9fe870" d="M 800 380 C 760 300, 730 270, 700 226"/>
+  </g>
+  <g font-size="13" font-weight="700">
+    <text class="halo" x="286" y="266" fill="#ffd166">状态文字（亮度摘要·速度·意图史）</text>
+    <text class="halo" x="352" y="112" fill="#7fd1ff">意图→增益</text>
+    <text class="halo" x="612" y="316" fill="#ff9f6e">下行神经元→偏航·推力</text>
+    <text class="halo" x="748" y="300" fill="#9fe870">视网膜亮度</text>
+  </g>
+
+  <g id="legend">
+    <rect x="36" y="618" width="336" height="116" rx="10" fill="#0f121acc" stroke="#3b4354" stroke-width="2"/>
+    <text x="54" y="644" font-size="15" font-weight="800" fill="#e8eaf0">一句话分工</text>
+    <text x="54" y="668" font-size="13" fill="#8fc7ff">Laya 决定往哪去：选意图、调增益、给唤醒度</text>
+    <text x="54" y="690" font-size="13" fill="#9fe870">果蝇大脑决定怎么飞：亮度→网络→DN→转向</text>
+    <text x="54" y="716" font-size="12" fill="#9aa3b5">意图每 7 秒切换（演示放慢）；真实系统约 2 秒一换</text>
+  </g>
+  <text class="halo" x="1256" y="740" font-size="13" fill="#c8cedb" text-anchor="end">拖动平移 · 滚轮缩放 · 双击恢复跟随</text>
+</svg>
+<div class="caption">
+  <b>三维地图与两层系统</b>：地图是 44×44 方块的等距投影体素世界（山峰、湖泊、树林），相机跟随果蝇，可拖动平移、滚轮缩放、双击回到跟随。果蝇每时每刻把画面变成左右眼亮度信号送进大脑仿真（<b>执行层</b>，166,700 个神经元照真实接线图连接），读出下行神经元的左右差换算成偏航和推力；状态文字每 0.3 秒发给 <b>Laya（决策层）</b>，它从趋光、避障优先、探索巡航、边界规避、悬停休息五个意图里选一个并输出唤醒度，按意图调整感官与运动增益。箭头颜色：黄=状态文字、蓝=意图增益、橙=运动指令、绿=视网膜亮度。
+</div>
+</div>
+
+<script>
+/* ================= 基础 ================= */
+const NS = "http://www.w3.org/2000/svg";
+const intents = ["趋光","避障优先","探索巡航","边界规避","悬停休息"];
+const el = id => document.getElementById(id);
+function mk(tag, attrs, parent){
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const rnd = (i,j) => ((i*73856093 ^ j*19349663) >>> 0) / 4294967295;
+
+/* ================= 三维体素地图 =================
+   地图 N×N 方块，坐标 (i, j, z)：i 向屏幕右下，j 向屏幕左下，z 向上。
+   等距投影：px = (i-j)*W2，py = (i+j)*W2/2 - z*ZS                    */
+const N = 44, W2 = 22, ZS = 30;
+const isoP = (i, j, z) => ({ x: (i - j) * W2, y: (i + j) * W2 * .5 - z * ZS });
+const P = (i,j,z) => { const p = isoP(i,j,z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; };
+
+/* 高度场：两座峰 + 一个湖盆 + 微起伏，量化成整层方块 */
+const H = [], isWater = [];
+for (let i = 0; i < N; i++){ H.push([]); isWater.push([]); }
+for (let i = 0; i < N; i++) for (let j = 0; j < N; j++){
+  let h = 6.4 * Math.exp(-(((i-31)/8.5)**2 + ((j-13)/6.5)**2));   // 主峰
+  h += 3.0 * Math.exp(-(((i-38)/5.5)**2 + ((j-21)/5.0)**2));      // 副峰
+  h -= 2.8 * Math.exp(-(((i-11)/6.0)**2 + ((j-33)/7.0)**2));      // 湖盆
+  h += (rnd(i,j) - .5) * .8;                                       // 起伏
+  H[i][j] = Math.max(0, Math.round(h));
+  isWater[i][j] = h < -0.9 && H[i][j] === 0;                       // 湖面在水层之上
+}
+const hAt = (i, j) => H[Math.max(0, Math.min(N-1, Math.round(i)))][Math.max(0, Math.min(N-1, Math.round(j)))];
+
+/* 一个方块柱：顶面菱形 + 两侧暴露面 */
+function column(i, j, g){
+  const z = H[i][j];
+  const grass = ["#6abe30","#5fae2b","#6fbe36"];
+  let top, side1, side2;
+  if (z >= 5)       { top = "#f4f8ff"; side1 = "#c9d6e8"; side2 = "#b4c4da"; }  // 积雪
+  else if (z >= 3)  { top = z>=4 ? "#94949a" : "#8a8a8f"; side1 = "#6e6e73"; side2 = "#63636a"; } // 石
+  else if (isWater[i][j]) { top = null; side1 = null; side2 = null; }
+  else              { top = grass[Math.floor(rnd(i*3,j*7)*3)]; side1 = "#8b5a2b"; side2 = "#6d431d"; }
+  if (top) mk("polygon", { points: `${P(i,j,z)} ${P(i+1,j,z)} ${P(i+1,j+1,z)} ${P(i,j+1,z)}`,
+    fill: top, stroke: "rgba(0,0,0,.18)", "stroke-width": .6 }, g);
+  const zj = Math.min(z, j+1 < N ? H[i][j+1] : z);   // 朝 j+（屏幕左下）
+  if (top && zj < z) mk("polygon", { points: `${P(i,j+1,z)} ${P(i+1,j+1,z)} ${P(i+1,j+1,zj)} ${P(i,j+1,zj)}`,
+    fill: side2, stroke: "rgba(0,0,0,.22)", "stroke-width": .6 }, g);
+  const zi = Math.min(z, i+1 < N ? H[i+1][j] : z);   // 朝 i+（屏幕右下）
+  if (top && zi < z) mk("polygon", { points: `${P(i+1,j,z)} ${P(i+1,j+1,z)} ${P(i+1,j+1,zi)} ${P(i+1,j,zi)}`,
+    fill: side1, stroke: "rgba(0,0,0,.22)", "stroke-width": .6 }, g);
+}
+
+/* 长方体（树干/树冠用） */
+function box(bi, bj, ei, ej, z0, z1, top, right, left, g){
+  mk("polygon", { points: `${P(bi,bj,z1)} ${P(ei,bj,z1)} ${P(ei,ej,z1)} ${P(bi,ej,z1)}`,
+    fill: top, stroke: "rgba(0,0,0,.2)", "stroke-width": .6 }, g);
+  mk("polygon", { points: `${P(ei,bj,z1)} ${P(ei,ej,z1)} ${P(ei,ej,z0)} ${P(ei,bj,z0)}`,
+    fill: right, stroke: "rgba(0,0,0,.25)", "stroke-width": .6 }, g);
+  mk("polygon", { points: `${P(bi,ej,z1)} ${P(ei,ej,z1)} ${P(ei,ej,z0)} ${P(bi,ej,z0)}`,
+    fill: left, stroke: "rgba(0,0,0,.25)", "stroke-width": .6 }, g);
+}
+
+(function buildWorld(){
+  const gT = el("terrain"), gW = el("waterG"), gTr = el("treesG");
+  for (let s = 0; s <= 2*(N-1); s++){          // 画家算法：按 i+j 从远到近
+    for (let i = Math.max(0, s-N+1); i <= Math.min(N-1, s); i++){
+      const j = s - i;
+      column(i, j, gT);
+      if (isWater[i][j]){
+        const wz = .6;
+        mk("polygon", { points: `${P(i,j,wz)} ${P(i+1,j,wz)} ${P(i+1,j+1,wz)} ${P(i,j+1,wz)}`,
+          fill: "#4a86c8", stroke: "#2e5a8c", "stroke-width": .8 }, gW);
+      }
+      if (!isWater[i][j] && H[i][j] <= 2 && H[i][j] >= 0 && rnd(i*11, j*13) > .945){
+        const z = H[i][j];
+        box(i+.36, j+.36, i+.64, j+.64, z, z+1.1, "#7a5530", "#5e3f22", "#543a1f", gTr);      // 树干
+        box(i+.10, j+.10, i+.90, j+.90, z+1.1, z+2.4, "#3e8e2f", "#2f7a24", "#276b1f", gTr);  // 树冠
+      }
+    }
+  }
+})();
+
+/* ================= 面板（与旧版一致） ================= */
+(function chips(){
+  const g = el("chips");
+  intents.forEach((name, i) => {
+    const x = 56, y = 94 + i * 15;
+    mk("rect", {x, y, width:130, height:13, rx:6, class:"chip", id:"chip" + i}, g);
+    const t = mk("text", {x: x + 10, y: y + 10.5, "font-size":11, id:"chipt" + i, fill:"#9aa3b5"}, g);
+    t.textContent = name;
+  });
+})();
+function setChip(active){
+  intents.forEach((_, i) => {
+    const on = i === active;
+    el("chip" + i).setAttribute("fill", on ? "#2f6fdb" : "#232838");
+    el("chip" + i).setAttribute("stroke", on ? "#7fb0ff" : "none");
+    el("chipt" + i).setAttribute("fill", on ? "#ffffff" : "#9aa3b5");
+  });
+}
+(function net(){
+  const g = el("net");
+  const retina = [], brain = [], dn = [];
+  for (let i = 0; i < 5; i++)  retina.push([424, 108 + i * 14]);
+  for (let i = 0; i < 8; i++)  brain.push([512, 100 + i * 11 + (i % 2) * 4]);
+  dn.push([596, 118]); dn.push([596, 146]);
+  const edges = [];
+  retina.forEach((r, i) => { for (let k = 0; k < 2; k++) edges.push([r, brain[(i * 2 + k) % 8]]); });
+  brain.forEach((b, i) => edges.push([b, dn[i % 2]]));
+  edges.forEach(([a, b]) => mk("line", {x1:a[0], y1:a[1], x2:b[0], y2:b[1], stroke:"#465068", "stroke-width":1}, g));
+  const dot = (p, c, delay) => mk("circle", {cx:p[0], cy:p[1], r:4, fill:c, class:"node"}, g)
+    .setAttribute("style", `animation-delay:${delay}s`);
+  retina.forEach((p, i) => dot(p, "#9fe870", i * .12));
+  brain.forEach((p, i)  => dot(p, "#c9d3e8", .3 + i * .09));
+  dn.forEach((p, i)     => dot(p, i ? "#ff9f6e" : "#7fd1ff", .8));
+  mk("text", {x:404, y:104, "font-size":10, fill:"#9fe870"}, g).textContent = "视网膜";
+  mk("text", {x:494, y:94,  "font-size":10, fill:"#c9d3e8"}, g).textContent = "连接组";
+  mk("text", {x:584, y:168, "font-size":10, fill:"#ff9f6e"}, g).textContent = "DN";
+})();
+
+/* ================= 相机与交互 ================= */
+const CX = 640, CY = 380;
+let zoom = 1, camX = 0, camY = 0, offX = 0, offY = 0, follow = true;
+const svg = el("scene");
+let drag = null;
+svg.addEventListener("pointerdown", e => { drag = {x: e.clientX, y: e.clientY}; svg.setPointerCapture(e.pointerId); });
+svg.addEventListener("pointermove", e => {
+  if (!drag) return;
+  follow = false;
+  offX += (e.clientX - drag.x) * 1280 / svg.clientWidth;
+  offY += (e.clientY - drag.y) * 760 / svg.clientHeight;
+  drag = {x: e.clientX, y: e.clientY};
+});
+svg.addEventListener("pointerup", () => drag = null);
+svg.addEventListener("dblclick", () => { follow = true; offX = 0; offY = 0; });
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoom = Math.max(.45, Math.min(2.2, zoom * (e.deltaY < 0 ? 1.15 : .87)));
+}, { passive: false });
+
+/* ================= 果蝇：三维运动 + 双层控制 ================= */
+const anchors = {   // 锚点用地图坐标 (i, j, z)
+  "趋光":     {i: 36, j: 9,  z: 9,  r: 3,  w: .5},
+  "避障优先": {i: 8,  j: 11, z: 2.5,r: 3,  w: .7},
+  "探索巡航": {i: 22, j: 22, z: 5,  r: 14, w: .22},
+  "边界规避": {i: 22, j: 22, z: 4,  r: 5,  w: .8},
+  "悬停休息": {i: 0,  j: 0,  z: 0,  r: 1.2,w: .6},   // 切换时取当时位置
+};
+let intentIdx = 2, intentT = 0, hold = null;
+const fly = { i: 14, j: 20, z: 5, vi: .5, vj: 0, vz: 0 };
+let facing = 1, t = 0, last = performance.now();
+
+function pickTarget(name){
+  const a = anchors[name];
+  const ai = name === "悬停休息" ? hold.i : a.i;
+  const aj = name === "悬停休息" ? hold.j : a.j;
+  const az = name === "悬停休息" ? hold.z : a.z;
+  let ti = ai + a.r * Math.cos(t * a.w);
+  let tj = aj + a.r * Math.sin(t * a.w) * .8;
+  let tz = az + 1.4 * Math.sin(t * a.w * 1.4);
+  ti = Math.max(2, Math.min(N-2, ti)); tj = Math.max(2, Math.min(N-2, tj));
+  tz = Math.max(tz, hAt(ti, tj) + 1.6);
+  return {ti, tj, tz};
+}
+
+function frame(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+
+  // 意图切换（演示 7 秒一轮换；真实系统实测约每 2 秒换一次目标）
+  intentT += dt;
+  if (intentT > 7){
+    intentT = 0;
+    intentIdx = (intentIdx + 1) % intents.length;
+    const nm = intents[intentIdx];
+    if (nm === "悬停休息") hold = {i: fly.i, j: fly.j, z: fly.z};
+    setChip(intentIdx);
+    el("intentTag").textContent = "意图：" + nm;
+  }
+
+  // 决策层给出目标 → 执行层（转向+推进+升降）跟踪
+  const name = intents[intentIdx];
+  const {ti, tj, tz} = pickTarget(name);
+  fly.vi += (ti - fly.i) * 1.1 * dt;
+  fly.vj += (tj - fly.j) * 1.1 * dt;
+  fly.vz += (tz - fly.z) * 1.6 * dt;
+  const damp = Math.pow(.3, dt);
+  fly.vi *= damp; fly.vj *= damp; fly.vz *= damp;
+  const hs = Math.hypot(fly.vi, fly.vj), maxH = name === "悬停休息" ? 1.2 : 5.5;
+  if (hs > maxH){ fly.vi *= maxH / hs; fly.vj *= maxH / hs; }
+  fly.vz = Math.max(-3, Math.min(3, fly.vz));
+  fly.i += fly.vi * dt; fly.j += fly.vj * dt; fly.z += fly.vz * dt;
+  fly.i = Math.max(2, Math.min(N-2, fly.i)); fly.j = Math.max(2, Math.min(N-2, fly.j));
+  const floor = hAt(fly.i, fly.j) + 1.3;                 // 不穿地
+  if (fly.z < floor){ fly.z = floor; fly.vz = Math.max(0, fly.vz); }
+  fly.z = Math.min(fly.z, 11);
+
+  // 投影到屏幕；姿态用屏幕速度判断（镜像+限角，保证正立）
+  const p = isoP(fly.i, fly.j, fly.z);
+  const spx = (fly.vi - fly.vj) * W2;
+  const spy = (fly.vi + fly.vj) * W2 * .5 - fly.vz * ZS;
+  if (spx > 30) facing = 1; else if (spx < -30) facing = -1;
+  let pitch = facing === 1 ? Math.atan2(spy, spx) * 180 / Math.PI : -Math.atan2(spy, -spx) * 180 / Math.PI;
+  pitch = Math.max(-55, Math.min(55, pitch));
+  el("fly").setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+  el("flyBody").setAttribute("transform",
+    facing === 1 ? `rotate(${pitch.toFixed(1)}) scale(-1,1)` : `rotate(${pitch.toFixed(1)})`);
+
+  // 振翅
+  const flap = 28 * Math.sin(t * 2 * Math.PI * 21);
+  el("wingFront").setAttribute("transform", `rotate(${(-flap).toFixed(1)} -12 -6)`);
+  el("wingBack").setAttribute("transform", `rotate(${(-flap * .8 + 18).toFixed(1)} -10 -4)`);
+
+  // 影子贴在地表
+  const gp = isoP(fly.i, fly.j, hAt(fly.i, fly.j));
+  const alt = Math.max(0, Math.min(1, (fly.z - hAt(fly.i, fly.j)) / 8));
+  el("shadow").setAttribute("transform", `translate(${gp.x.toFixed(1)},${gp.y.toFixed(1)})`);
+  el("shadow").setAttribute("rx", (8 + 16 * alt).toFixed(1));
+  el("shadow").setAttribute("opacity", (.06 + .18 * alt).toFixed(2));
+
+  // 相机：跟随或手动
+  if (follow){
+    camX += (p.x - camX) * Math.min(1, dt * 3);
+    camY += (p.y - camY) * Math.min(1, dt * 3);
+  }
+  el("world").setAttribute("transform",
+    `translate(${(CX - camX * zoom + offX).toFixed(1)},${(CY - camY * zoom + offY).toFixed(1)}) scale(${zoom.toFixed(3)})`);
+
+  // 仪表
+  el("arousal").setAttribute("width", (90 + 40 * Math.sin(t * .8) + 20 * Math.sin(t * 2.3) + 30).toFixed(0));
+  const turn = spx / Math.max(60, Math.hypot(spx, spy));
+  el("dnL").setAttribute("width", (55 + 45 * turn).toFixed(0));
+  el("dnR").setAttribute("width", (55 - 45 * turn).toFixed(0));
+
+  // 信号箭头：果蝇端用世界变换后的屏幕坐标，每帧跟随
+  const fx = CX + (p.x - camX) * zoom + offX, fy = CY + (p.y - camY) * zoom + offY;
+  const hx = fx + (facing === 1 ? 44 : -50) * zoom, hy = fy - 6 * zoom;
+  const sx2 = fx + (facing === 1 ? -40 : 34) * zoom, sy2 = fy - 26 * zoom;
+  const mx = fx - 6 * zoom, my = fy - 20 * zoom;
+  const cC = v => Math.max(60, Math.min(1240, v));
+  el("aState").setAttribute("d",
+    `M ${sx2.toFixed(0)} ${sy2.toFixed(0)} C ${cC(fx - 100).toFixed(0)} ${(fy - 140).toFixed(0)}, 330 330, 192 222`);
+  el("aMotor").setAttribute("d",
+    `M 560 222 C 610 320, ${cC(fx + 30).toFixed(0)} ${(fy - 90).toFixed(0)}, ${mx.toFixed(0)} ${my.toFixed(0)}`);
+  el("aSense").setAttribute("d",
+    `M ${hx.toFixed(0)} ${hy.toFixed(0)} C ${cC(hx + 80).toFixed(0)} ${(fy - 130).toFixed(0)}, 770 310, 698 222`);
+
+  requestAnimationFrame(frame);
+}
+setChip(intentIdx);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

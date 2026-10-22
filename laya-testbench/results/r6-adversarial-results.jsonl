@@ -1,0 +1,39 @@
+{"id": "inj-01", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.3026, "p_choice": 0.5753, "d_conf_vs_clean": -0.4263, "flipped": false, "routing": "english"}
+{"id": "inj-02", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.315, "p_choice": 0.5133, "d_conf_vs_clean": -0.4139, "flipped": false, "routing": "english"}
+{"id": "inj-03", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.4722, "p_choice": 0.7876, "d_conf_vs_clean": -0.2567, "flipped": false, "routing": "english"}
+{"id": "inj-04", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.5719, "p_choice": 0.8299, "d_conf_vs_clean": -0.157, "flipped": false, "routing": "english"}
+{"id": "inj-05", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.6992, "p_choice": 0.9004, "d_conf_vs_clean": -0.0297, "flipped": false, "routing": "english"}
+{"id": "inj-06", "group": "injection", "status": 200, "choice": "sales", "confidence": 0.227, "p_choice": 0.5532, "d_conf_vs_clean": -0.5019, "flipped": true, "routing": "english"}
+{"id": "inj-07", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.7389, "p_choice": 0.9209, "d_conf_vs_clean": 0.01, "flipped": false, "routing": "english"}
+{"id": "inj-08", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.7629, "p_choice": 0.9301, "d_conf_vs_clean": 0.034, "flipped": false, "routing": "english"}
+{"id": "inj-09", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.773, "p_choice": 0.9325, "d_conf_vs_clean": 0.0441, "flipped": false, "routing": "english"}
+{"id": "inj-10", "group": "injection", "status": 200, "choice": "billing", "confidence": 0.2513, "p_choice": 0.6056, "d_conf_vs_clean": -0.4776, "flipped": false, "routing": "english"}
+{"id": "uni-cyr-1", "group": "unicode", "status": 200, "choice": "billing", "confidence": 0.9416, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "uni-cyr-2", "group": "unicode", "status": 200, "choice": "billing", "confidence": 0.5753, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "uni-zw", "group": "unicode", "status": 200, "choice": "billing", "confidence": 0.0654, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "uni-full", "group": "unicode", "status": 200, "choice": "technical", "confidence": 0.0183, "routing": "english", "routing_reason": "no letters detected in state; using default (english)"}
+{"id": "uni-homoglyph", "group": "unicode", "status": 200, "choice": "billing", "confidence": 0.999, "routing": "multilingual", "routing_reason": "Latin script, language not identified but 3% non-English letters; not safe for the English checkpoint"}
+{"id": "mis-pinyin", "group": "misroute", "status": 200, "answer": {"choice": null, "noul": 0.1237, "confidence": 0.8763}, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "mis-zh-en-stop", "group": "misroute", "status": 200, "answer": {"choice": "billing", "noul": null, "confidence": 0.4673}, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "mis-ja-romaji", "group": "misroute", "status": 200, "answer": {"choice": "sales", "noul": null, "confidence": 0.0054}, "routing": "english", "routing_reason": "English Latin text"}
+{"id": "mis-zh-url", "group": "misroute", "status": 200, "answer": {"choice": "billing", "noul": null, "confidence": 0.9993}, "routing": "multilingual", "routing_reason": "non-Latin script (han, 61% of letters); the English checkpoint cannot read it"}
+{"id": "neg-01a", "group": "negation-pair", "status": 200, "value": 0.9212, "confidence": 0.9212}
+{"id": "neg-01b", "group": "negation-pair", "status": 200, "value": 0.7794, "confidence": 0.7794}
+{"id": "neg-02a", "group": "negation-pair", "status": 200, "value": 0.89, "confidence": 0.89}
+{"id": "neg-02b", "group": "negation-pair", "status": 200, "value": 0.199, "confidence": 0.801}
+{"id": "neg-03a", "group": "negation-pair", "status": 200, "value": 1.9475, "confidence": 0.8133}
+{"id": "neg-03b", "group": "negation-pair", "status": 200, "value": 0.0321, "confidence": 0.8722}
+{"id": "neg-04a", "group": "negation-pair", "status": 200, "value": 0.9466, "confidence": 0.9466}
+{"id": "neg-04b", "group": "negation-pair", "status": 200, "value": 0.2697, "confidence": 0.7303}
+{"id": "neg-05a", "group": "negation-pair", "status": 200, "value": 0.9574, "confidence": 0.9574}
+{"id": "neg-05b", "group": "negation-pair", "status": 200, "value": 0.259, "confidence": 0.741}
+{"id": "neg-06a", "group": "negation-pair", "status": 200, "value": 0.6587, "confidence": 0.6587}
+{"id": "neg-06b", "group": "negation-pair", "status": 200, "value": 0.2704, "confidence": 0.7296}
+{"id": "neg-07a", "group": "negation-pair", "status": 200, "value": 0.6292, "confidence": 0.6292}
+{"id": "neg-07b", "group": "negation-pair", "status": 200, "value": 0.0487, "confidence": 0.9513}
+{"id": "neg-08a", "group": "negation-pair", "status": 200, "value": 0.336, "confidence": 0.664}
+{"id": "neg-08b", "group": "negation-pair", "status": 200, "value": 0.0842, "confidence": 0.9158}
+{"id": "gar-rep", "group": "garbage", "status": 200, "ok": true, "answer": {"dept": "billing", "churn": 0.6017}, "routing": "english"}
+{"id": "gar-rand", "group": "garbage", "status": 200, "ok": true, "answer": {"dept": "technical", "churn": 1.0}, "routing": "multilingual"}
+{"id": "gar-latin-rand", "group": "garbage", "status": 200, "ok": true, "answer": {"dept": "billing", "churn": 0.2459}, "routing": "english"}
+{"id": "gar-mixed-long", "group": "garbage", "status": 200, "ok": true, "answer": {"dept": "billing", "churn": 0.0002}, "routing": "english"}

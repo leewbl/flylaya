@@ -1,0 +1,70 @@
+{
+  "schema_version": "flylaya.scene.v1",
+  "scene_id": "S4v_vertical",
+  "version": 1,
+  "arena_m": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "duration_s": 120,
+  "decision_dt_s": 0.3,
+  "neural_dt_s": 0.1,
+  "start": {
+    "position_m": [
+      0.5,
+      0.25,
+      0.5
+    ],
+    "yaw_deg": 90,
+    "speed_m_s": 0.12
+  },
+  "light": {
+    "mode": "directional",
+    "azimuth_deg": 200.0,
+    "elevation_deg": 45.0,
+    "intensity": 0.9,
+    "initially_on": true
+  },
+  "obstacles": [
+    {
+      "id": "tall",
+      "shape": "cylinder",
+      "center_xy_m": [
+        0.42,
+        0.62
+      ],
+      "radius_m": 0.05,
+      "height_m": 0.95,
+      "enabled": true
+    },
+    {
+      "id": "short",
+      "shape": "cylinder",
+      "center_xy_m": [
+        0.68,
+        0.35
+      ],
+      "radius_m": 0.05,
+      "height_m": 0.3,
+      "enabled": true
+    }
+  ],
+  "events": [],
+  "mirror_axis": "x",
+  "random_streams": [
+    "scene",
+    "controller",
+    "neural",
+    "motor"
+  ],
+  "windows": [
+    {
+      "name": "observe",
+      "t_s": [
+        0.0,
+        120.0
+      ]
+    }
+  ]
+}

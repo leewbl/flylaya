@@ -1,0 +1,42 @@
+{
+  "config_id": "B_no_laya",
+  "label": "connectome brain, NO Laya: fixed intent rotation (M1 FixedIntentSource semantics)",
+  "brain": "connectome",
+  "intent_source": "fixed_rotation",
+  "fixed_rotation": {
+    "intents": [
+      "phototaxis",
+      "avoid_obstacle",
+      "explore",
+      "center_in_arena",
+      "rest_hover"
+    ],
+    "hold_n_frames": 30,
+    "arousal": 1.0
+  },
+  "arena": {
+    "size_cm": 100,
+    "obstacle_columns": 7,
+    "sun": "directional"
+  },
+  "run": {
+    "duration_s": 300,
+    "bio_frame_hz": 10,
+    "seeds": [
+      11,
+      22,
+      33,
+      44,
+      55,
+      66,
+      77,
+      88,
+      99,
+      111
+    ]
+  },
+  "logging": {
+    "trajectory_jsonl": true,
+    "laya_call_jsonl": false
+  }
+}

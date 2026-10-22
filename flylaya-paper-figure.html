@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>图 1 · FlyLaya 双层系统与 H1 检验（论文图）</title>
+<style>
+  html,body{margin:0;background:#e9e7e2;color:#1a1a1a;font-family:Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1280px;margin:24px auto;padding:0 16px}
+  .paper{background:#fff;box-shadow:0 2px 18px rgba(0,0,0,.12);border-radius:4px;padding:26px 22px 18px}
+  svg{width:100%;height:auto;display:block}
+  .bar{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+  .bar button{font:inherit;font-size:13px;padding:6px 14px;border:1px solid #9a938a;border-radius:6px;background:#faf9f6;cursor:pointer}
+  .bar button:hover{background:#f0ede6}
+  .bar .hint{font-size:12px;color:#777}
+  figcaption{font-size:13.5px;line-height:1.75;color:#222;margin-top:14px;border-top:1px solid #ddd;padding-top:10px}
+  figcaption b.pan{font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="paper">
+<div class="bar">
+  <button onclick="dlSVG()">下载 SVG（矢量）</button>
+  <button onclick="dlPNG()">下载 PNG（3×，约 300 dpi 半版）</button>
+  <span class="hint">图内全部数字出自 m5/report/campaign-summary.md（TASK-0021 确认批）</span>
+</div>
+
+<svg id="fig" viewBox="0 0 1240 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="kg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f7a4f"/>
+    </marker>
+    <marker id="ko" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b06a2a"/>
+    </marker>
+    <marker id="kb" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3a6ea5"/>
+    </marker>
+    <marker id="ky" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a6a10"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="600" fill="#ffffff"/>
+
+  <!-- ================= 面板 A：系统架构 ================= -->
+  <text x="24" y="44" font-size="22" font-weight="800">A</text>
+  <text x="54" y="43" font-size="15" font-weight="700">系统架构：双层闭环</text>
+
+  <!-- 左列：世界 → 感官 → 连接组；Laya -->
+  <rect x="60" y="90" width="150" height="64" rx="8" fill="#f2ead8" stroke="#8a744f" stroke-width="1.3"/>
+  <text x="135" y="116" text-anchor="middle" font-size="13" font-weight="700">3D 世界</text>
+  <text x="135" y="134" text-anchor="middle" font-size="10.5" fill="#5a4a30">光 · 柱 · 壁 · 碰撞</text>
+
+  <rect x="60" y="205" width="150" height="64" rx="8" fill="#e3efe2" stroke="#4e7a4e" stroke-width="1.3"/>
+  <text x="135" y="231" text-anchor="middle" font-size="13" font-weight="700">感官渲染</text>
+  <text x="135" y="249" text-anchor="middle" font-size="10.5" fill="#3d5a3d">视网膜亮度向量</text>
+
+  <rect x="48" y="320" width="190" height="86" rx="8" fill="#dcebe2" stroke="#2f7a4f" stroke-width="1.8"/>
+  <text x="143" y="348" text-anchor="middle" font-size="14" font-weight="800">果蝇连接组仿真</text>
+  <text x="143" y="368" text-anchor="middle" font-size="10.5" fill="#2f5a3f">166,700 神经元（LIF）</text>
+  <text x="143" y="386" text-anchor="middle" font-size="10.5" fill="#2f5a3f">照真实接线图连接</text>
+
+  <rect x="48" y="470" width="190" height="86" rx="8" fill="#dce8f4" stroke="#3a6ea5" stroke-width="1.8"/>
+  <text x="143" y="498" text-anchor="middle" font-size="14" font-weight="800" fill="#28527a">Laya 决策层</text>
+  <text x="143" y="518" text-anchor="middle" font-size="10.5" fill="#3a5a7a">System One：choice / score</text>
+  <text x="143" y="536" text-anchor="middle" font-size="10.5" fill="#3a5a7a">五意图 + 唤醒度 · 每 0.3 s</text>
+
+  <!-- 右列：位姿 ← 运动 ← DN -->
+  <rect x="400" y="90" width="170" height="64" rx="8" fill="#e8e8ee" stroke="#55566e" stroke-width="1.3"/>
+  <text x="485" y="116" text-anchor="middle" font-size="13" font-weight="700">位姿积分</text>
+  <text x="485" y="134" text-anchor="middle" font-size="10.5" fill="#45465a">10 Hz 闭环</text>
+
+  <rect x="400" y="205" width="170" height="64" rx="8" fill="#e8e8ee" stroke="#55566e" stroke-width="1.3"/>
+  <text x="485" y="231" text-anchor="middle" font-size="13" font-weight="700">运动映射</text>
+  <text x="485" y="249" text-anchor="middle" font-size="10.5" fill="#45465a">偏航 · 推力 · 俯仰</text>
+
+  <rect x="400" y="320" width="170" height="64" rx="8" fill="#f4e3d0" stroke="#b06a2a" stroke-width="1.3"/>
+  <text x="485" y="346" text-anchor="middle" font-size="13" font-weight="700">DN 左右读出</text>
+  <text x="485" y="364" text-anchor="middle" font-size="10.5" fill="#7a4e20">下行神经元发放差</text>
+
+  <!-- 主回路 -->
+  <g fill="none" stroke="#333" stroke-width="1.4">
+    <path d="M 135 154 L 135 201" marker-end="url(#k)"/>
+    <path d="M 135 269 L 135 316" marker-end="url(#k)"/>
+    <path d="M 238 352 L 396 352" marker-end="url(#k)"/>
+    <path d="M 485 320 L 485 269" marker-end="url(#k)"/>
+    <path d="M 485 205 L 485 154" marker-end="url(#k)"/>
+    <path d="M 400 122 L 214 122" marker-end="url(#k)"/>
+  </g>
+  <g font-size="9.5" fill="#444">
+    <text x="141" y="182">R1–R6</text>
+    <text x="141" y="297">亮度</text>
+    <text x="300" y="345" text-anchor="middle">发放率</text>
+    <text x="492" y="297">DN 差</text>
+    <text x="492" y="182">运动指令</text>
+    <text x="300" y="115" text-anchor="middle">位姿更新</text>
+  </g>
+
+  <!-- Laya 的三条调制通路 -->
+  <path d="M 60 237 L 30 237 L 30 513 L 44 513" fill="none" stroke="#8a6a10" stroke-width="1.5" marker-end="url(#ky)"/>
+  <text transform="rotate(-90 22 375)" x="22" y="375" text-anchor="middle" font-size="9.5" fill="#8a6a10">状态文字 observable_state</text>
+
+  <path d="M 238 490 L 262 490 L 262 237 L 214 237" fill="none" stroke="#2f7a4f" stroke-width="1.6" marker-end="url(#kg)"/>
+  <text transform="rotate(-90 254 372)" x="254" y="372" text-anchor="middle" font-size="9.5" fill="#2f7a4f">感官增益（意图）</text>
+
+  <path d="M 238 512 L 284 512 L 284 243 L 396 243" fill="none" stroke="#b06a2a" stroke-width="1.6" marker-end="url(#ko)"/>
+  <text transform="rotate(-90 292 372)" x="292" y="372" text-anchor="middle" font-size="9.5" fill="#b06a2a">运动增益（唤醒度）</text>
+
+  <path d="M 238 534 L 306 534 L 306 268 L 396 268" fill="none" stroke="#999" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#k)"/>
+  <text x="244" y="528" font-size="9" fill="#888">direct（实验默认关）</text>
+
+  <!-- 通路图例 -->
+  <g font-size="10" fill="#333">
+    <circle cx="64" cy="576" r="4" fill="#2f7a4f"/><text x="74" y="580">sensory：前神经感官通路（主条件）</text>
+    <circle cx="310" cy="576" r="4" fill="#b06a2a"/><text x="320" y="580">motor：神经后运动通路</text>
+    <line x1="480" y1="576" x2="512" y2="576" stroke="#999" stroke-width="1.2" stroke-dasharray="5 4"/><text x="518" y="580">direct：直接偏航（关）</text>
+  </g>
+
+  <!-- 分隔线 -->
+  <line x1="710" y1="40" x2="710" y2="575" stroke="#ccc" stroke-width="1"/>
+
+  <!-- ================= 面板 B：对照设计 ================= -->
+  <text x="722" y="44" font-size="22" font-weight="800">B</text>
+  <text x="752" y="43" font-size="15" font-weight="700">对照设计：把「懂状态」从「有节奏」里分离</text>
+
+  <!-- P_laya 行 -->
+  <text x="768" y="106" text-anchor="end" font-size="12" font-weight="800" fill="#3a6ea5">P_laya</text>
+  <rect x="776" y="82" width="100" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="826" y="108" text-anchor="middle" font-size="11.5" font-weight="600">状态</text>
+  <path d="M 876 104 L 892 104" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="896" y="82" width="100" height="44" rx="7" fill="#dce8f4" stroke="#3a6ea5" stroke-width="1.6"/>
+  <text x="946" y="108" text-anchor="middle" font-size="11.5" font-weight="700" fill="#28527a">Laya</text>
+  <path d="M 996 104 L 1012 104" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="1016" y="82" width="112" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="1072" y="108" text-anchor="middle" font-size="11.5" font-weight="600">意图 + 增益</text>
+  <path d="M 1072 126 C 1072 152 826 152 826 130" fill="none" stroke="#3a6ea5" stroke-width="1.4" marker-end="url(#kb)"/>
+  <text x="776" y="152" font-size="9.5" fill="#3a6ea5">闭环：选择依赖当前状态</text>
+
+  <!-- P_yoked 行 -->
+  <text x="768" y="186" text-anchor="end" font-size="12" font-weight="800" fill="#777">P_yoked</text>
+  <rect x="776" y="162" width="100" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="826" y="188" text-anchor="middle" font-size="11.5" font-weight="600">同种子场景</text>
+  <path d="M 876 184 L 892 184" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="896" y="162" width="100" height="44" rx="7" fill="#efefef" stroke="#777" stroke-width="1.1" stroke-dasharray="6 3"/>
+  <text x="946" y="181" text-anchor="middle" font-size="11" font-weight="600">意图序列回放</text>
+  <text x="946" y="197" text-anchor="middle" font-size="8.5" fill="#666">录自 P_laya</text>
+  <path d="M 996 184 L 1012 184" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="1016" y="162" width="112" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="1072" y="188" text-anchor="middle" font-size="11.5" font-weight="600">行为</text>
+  <path d="M 1072 206 C 1072 228 826 228 826 208" fill="none" stroke="#aaa" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <g stroke="#b03030" stroke-width="2">
+    <line x1="930" y1="218" x2="950" y2="234"/><line x1="950" y1="218" x2="930" y2="234"/>
+  </g>
+  <text x="776" y="228" font-size="9.5" fill="#777">开环：块置换打乱「序列—状态」对应，其余全同</text>
+
+  <!-- P_rule 行 -->
+  <text x="768" y="266" text-anchor="end" font-size="12" font-weight="800" fill="#6a4a8a">P_rule</text>
+  <rect x="776" y="242" width="100" height="44" rx="7" fill="#efeaf5" stroke="#6a4a8a" stroke-width="1.1"/>
+  <text x="826" y="262" text-anchor="middle" font-size="10.5" font-weight="600">几何 / 感官规则</text>
+  <text x="826" y="278" text-anchor="middle" font-size="8.5" fill="#6a4a8a">障碍→避障等</text>
+  <path d="M 876 264 L 892 264" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="896" y="242" width="100" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="946" y="268" text-anchor="middle" font-size="11.5" font-weight="600">意图</text>
+  <path d="M 996 264 L 1012 264" fill="none" stroke="#333" stroke-width="1.3" marker-end="url(#k)"/>
+  <rect x="1016" y="242" width="112" height="44" rx="7" fill="#f4f4f6" stroke="#666" stroke-width="1.1"/>
+  <text x="1072" y="268" text-anchor="middle" font-size="11.5" font-weight="600">行为</text>
+  <text x="776" y="308" font-size="9.5" fill="#6a4a8a">规则对照：仪器可表达性上限（非智能主张）</text>
+  <text x="776" y="326" font-size="9" fill="#888">yoked 入组校验：意图占比 · 平均停留 · 唤醒度与源序列匹配，超容差整批重跑</text>
+
+  <!-- ================= 面板 C：H1 结果 ================= -->
+  <text x="722" y="360" font-size="22" font-weight="800">C</text>
+  <text x="752" y="359" font-size="15" font-weight="700">H1 趋光检验（S1 单光源）</text>
+  <text x="740" y="378" font-size="10.5" fill="#666">每点 = 一侧镜像 × 20 个封存种子（30 s/段）的段级配对差 P_laya − P_yoked</text>
+
+  <!-- 坐标轴：-0.10 .. 0.70 映射到 760 .. 1180 -->
+  <line x1="760" y1="470" x2="1180" y2="470" stroke="#333" stroke-width="1.2"/>
+  <g stroke="#333" stroke-width="1">
+    <line x1="812.5" y1="470" x2="812.5" y2="476"/><line x1="891.3" y1="470" x2="891.3" y2="476"/>
+    <line x1="970" y1="470" x2="970" y2="476"/><line x1="1048.8" y1="470" x2="1048.8" y2="476"/>
+    <line x1="1127.5" y1="470" x2="1127.5" y2="476"/>
+  </g>
+  <g font-size="9.5" fill="#333" text-anchor="middle">
+    <text x="812.5" y="490">0</text><text x="891.3" y="490">0.15</text><text x="970" y="490">0.30</text>
+    <text x="1048.8" y="490">0.45</text><text x="1127.5" y="490">0.60</text>
+  </g>
+  <text x="970" y="508" text-anchor="middle" font-size="10.5" fill="#333">mean_cos_to_light（配对差；紫带 = P_rule 绝对得分区间）</text>
+
+  <line x1="812.5" y1="410" x2="812.5" y2="470" stroke="#888" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="812.5" y="404" text-anchor="middle" font-size="9.5" fill="#666">0（无差异）</text>
+  <line x1="891.3" y1="405" x2="891.3" y2="470" stroke="#b03030" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="891.3" y="399" text-anchor="middle" font-size="9.5" fill="#b03030">预注册阈值 +0.15</text>
+
+  <rect x="1101" y="430" width="42" height="40" fill="#6a4a8a" opacity=".15"/>
+  <rect x="1101" y="430" width="42" height="40" fill="none" stroke="#6a4a8a" stroke-width="1"/>
+  <text x="1122" y="423" text-anchor="middle" font-size="9" fill="#6a4a8a">P_rule 0.55–0.63</text>
+
+  <circle cx="810.2" cy="432" r="5" fill="#3a6ea5"/>
+  <text x="821" y="436" font-size="9.5" fill="#28527a">左镜 −0.004</text>
+  <circle cx="804.4" cy="452" r="5" fill="#3a6ea5"/>
+  <text x="816" y="456" font-size="9.5" fill="#28527a">右镜 −0.016</text>
+  <text x="760" y="392" font-size="9.5" fill="#666">95% CI 均跨零（区间见 campaign-summary）</text>
+
+  <rect x="736" y="522" width="464" height="52" rx="6" fill="#f7f4ee" stroke="#b0a080" stroke-width="1"/>
+  <text x="752" y="542" font-size="11" font-weight="700" fill="#4a3a20">H1 证伪：Laya ≈ yoked，而 P_rule 得分 → 断点在决策层状态语义，非接口</text>
+  <text x="752" y="561" font-size="10" fill="#6a5a40">S4 开放场景 holdout：P_laya +0.395 ≈ P_yoked +0.402（10 种子 × 300 s）</text>
+</svg>
+
+<figcaption>
+  <b>图 1 | FlyLaya 双层系统与 H1 趋光假设检验。</b>
+  <b class="pan">a</b>，闭环架构：3D 世界渲染成视网膜亮度向量送入果蝇连接组仿真（166,700 神经元），下行神经元（DN）左右读出经运动映射更新位姿；Laya 决策层每 0.3 秒读状态文字（observable_state），输出五选一意图与唤醒度，经感官（sensory，主条件）、运动（motor）两条通路调增益，直接偏航（direct）在机制实验中默认关闭。
+  <b class="pan">b</b>，对照设计：P_yoked 回放录自 P_laya 的意图序列并用块置换打乱「序列—状态」对应，保留意图占比、停留与唤醒度；P_rule 用几何/感官规则校验仪器可表达性。
+  <b class="pan">c</b>，H1 结果（S1 单侧光源，双镜像）：段级配对差左镜 −0.004、右镜 −0.016，95% 置信区间跨零，远低于预注册阈值 +0.15；规则对照 P_rule 绝对得分 0.55–0.63 证明仪器可表达目标行为，S4 开放场景 holdout 复现 P_laya ≈ P_yoked。结论：断点位于决策层的状态语义，不在接口。
+</figcaption>
+</div>
+</div>
+
+<script>
+const svgEl = document.getElementById("fig");
+function serializeSVG(){
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  return new XMLSerializer().serializeToString(clone);
+}
+function saveBlob(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function dlSVG(){
+  saveBlob(new Blob([serializeSVG()], { type: "image/svg+xml;charset=utf-8" }), "flylaya-fig1.svg");
+}
+function dlPNG(){
+  const img = new Image();
+  const url = URL.createObjectURL(new Blob([serializeSVG()], { type: "image/svg+xml;charset=utf-8" }));
+  img.onload = () => {
+    const k = 3, c = document.createElement("canvas");
+    c.width = 1240 * k; c.height = 600 * k;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => { saveBlob(b, "flylaya-fig1@3x.png"); URL.revokeObjectURL(url); }, "image/png");
+  };
+  img.src = url;
+}
+</script>
+</body>
+</html>

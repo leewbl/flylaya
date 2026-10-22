@@ -1,0 +1,9 @@
+{
+  "saccades.amplitude_deg.p50": {"range": [60, 150], "note": "VERIFIED x3: Mronz&Lehmann 2008 ~120deg/130ms (PMID 18552291); Tammero&Dickinson 2002 ~90deg/<100ms (PMID 11854370); Stupski&vanBreugel 2024 circling ~60deg (PMC11461137)"},
+  "saccades.duration_ms.p50": {"range": [80, 200], "note": "Mronz&Lehmann 2008: ~130 ms; 10Hz sampling floor applies"},
+  "saccades.peak_angular_velocity_dps.p50": {"range": [500, 2000], "note": "derived: 120deg/130ms ~ 920deg/s mean; peaks higher"},
+  "saccades.rate_hz": {"range": [1.0, 3.0], "note": "VERIFIED: Stupski&vanBreugel 2024 (PMC11461137) WT free flight 1.8-2.1 Hz across 4 conditions; odor-activated search 2.5-3.4; sink-and-circle 3-4 Hz @~60deg. State-mixed band; old [0.2,2.0] lower bound unsupported"},
+  "kinematics.speed_cm_s.p50": {"range": [20, 60], "note": "INFERENCE (still): anchors only - wind 30-60 cm/s + surge 0.8 m/s + cast 0.25 m/s (Pang 2018); >200 cm/s 'uncharacteristically high' filter in Stupski 2024 (citing Leitch 2021/Straw 2010/Medici&Fry 2012); measured distribution not yet text-verified"},
+  "segments.mean_straightness": {"range": [0.6, 0.95], "note": "INFERENCE (numeric band = modeling convention); structural premise VERIFIED qualitative: 'straight flight segments separated by rapid turns' Tammero&Dickinson 2002 (PMID 11854370)"},
+  "intent.switch_rate_hz": {"range": [0.1, 1.0], "note": "FlyLaya intent spec v1 section 5 acceptance, not literature"}
+}

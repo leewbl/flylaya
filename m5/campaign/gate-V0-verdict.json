@@ -1,0 +1,40 @@
+{
+ "gate": "V0",
+ "criteria_version": "v1 (plan \u00a70)",
+ "checked_at": "2026-09-26T10:39:18",
+ "z_std_m": {
+  "per_seed": [
+   0.1444,
+   0.1444,
+   0.1444,
+   0.1444,
+   0.1444
+  ],
+  "median": 0.14437765855647086,
+  "pass": true
+ },
+ "pin_frac": {
+  "per_seed": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "median": 0.0,
+  "pass": true
+ },
+ "omega_p50_dps": {
+  "median": 95.94000000000256,
+  "pass": true
+ },
+ "replay_frame_hashes": [
+  "e3ef38e9cb2e018fbb93ea9ec455ef6aa9212d9e0a44f14be6da22e6b8b6f4de",
+  "e3ef38e9cb2e018fbb93ea9ec455ef6aa9212d9e0a44f14be6da22e6b8b6f4de",
+  "e3ef38e9cb2e018fbb93ea9ec455ef6aa9212d9e0a44f14be6da22e6b8b6f4de",
+  "e3ef38e9cb2e018fbb93ea9ec455ef6aa9212d9e0a44f14be6da22e6b8b6f4de",
+  "e3ef38e9cb2e018fbb93ea9ec455ef6aa9212d9e0a44f14be6da22e6b8b6f4de"
+ ],
+ "PASS": true,
+ "note": "exploration seeds 1-5; vertical sealed set untouched; 0024 replay/coupling/permission QA runs separately"
+}

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>FlyLaya 盲评 3D — 哪个更像真果蝇?</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101216;
+    font-family: "Courier New", ui-monospace, monospace; color: #ddd; }
+  #main { display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    height: calc(100% - 96px); padding: 6px; box-sizing: border-box; }
+  .vp { position: relative; border: 2px solid #333; border-radius: 8px; overflow: hidden; }
+  .vp canvas { width: 100%; height: 100%; display: block; }
+  .vp .tag { position: absolute; top: 6px; left: 10px; font-size: 15px; font-weight: bold;
+    color: #fff; text-shadow: 2px 2px 0 #000; }
+  .vp .hint { position: absolute; bottom: 6px; left: 10px; font-size: 11px; color: #fff9;
+    text-shadow: 1px 1px 0 #000; }
+  #top { height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 12px; }
+  #bar { flex: 1; height: 10px; background: #222; border: 2px solid #000; }
+  #bar i { display: block; height: 100%; width: 0; background: #7fb8ff; }
+  #foot { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
+  .rate { display: flex; gap: 4px; align-items: center; }
+  .rate span { font-size: 12px; color: #aaa; }
+  .rate button { min-width: 34px; padding: 6px 0; border: 1px solid #444; border-radius: 6px;
+    background: #2a2a2c; color: #ddd; cursor: pointer; font: inherit; }
+  .rate button.sel { background: #4a7fb5; color: #fff; }
+  #pickL.pick-l, #pickR.pick-r { background: #4a7fb5; color: #fff; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #next { margin-left: auto; padding: 8px 18px; font: inherit; }
+  #doneWrap { position: fixed; inset: 0; background: #101216; display: none;
+    flex-direction: column; align-items: center; gap: 14px; padding: 30px; box-sizing: border-box; }
+  #doneWrap pre { max-width: 70vw; max-height: 46vh; overflow: auto; font-size: 11px;
+    background: #1a1a1e; padding: 12px; border-radius: 8px; }
+</style>
+<script type="importmap">
+  { "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="top">
+  <b id="meta">加载中…</b>
+  <span id="clock">0s / 300s</span>
+  <button id="play">⏸</button>
+  <label>速度 <input id="spd" type="range" min="0.5" max="8" step="0.5" value="2"> <span id="spdv">2×</span></label>
+  <div id="bar"><i></i></div>
+</div>
+<div id="main">
+  <div class="vp"><canvas id="cvL"></canvas><div class="tag">左</div>
+    <div class="hint">拖拽旋转 · 滚轮缩放</div></div>
+  <div class="vp"><canvas id="cvR"></canvas><div class="tag">右</div>
+    <div class="hint">拖拽旋转 · 滚轮缩放</div></div>
+</div>
+<div id="foot">
+  <div class="rate" id="rateL"><span>左 1–5:</span></div>
+  <div class="rate" id="rateR"><span>右 1–5:</span></div>
+  <button id="pickL">← 左更像</button>
+  <button id="pickR">右更像 →</button>
+  <button id="next" disabled>下一对 (0/0)</button>
+</div>
+<div id="doneWrap">
+  <h2>完成！感谢评分</h2>
+  <pre id="result"></pre>
+  <button id="dl">下载结果 JSON</button>
+  <p style="color:#f88">导出的文件包含答案, 请勿打开查看, 直接交回。</p>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const DATA = __DATA__;            // { runs: {name: {meta, frames}}, pairs: [{left,right,truth}] }
+const QS = new URLSearchParams(location.search);
+const RATER = QS.get("rater") || "anonymous";
+const FLY_Z = 49;
+
+/* ---------- 像素材质 (与 mc_view 同源) ---------- */
+function px(w, h, fn) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); fn(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const rnd = (a, b) => a + Math.random() * (b - a);
+function speckle(g, w, h, base, vary, n = 999) {
+  const bc = [1, 3, 5].map(i => parseInt(base.slice(i, i + 2), 16));
+  g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < n; i++) {
+    const c = bc.map((v, k) => Math.max(0, Math.min(255, Math.round(v + rnd(-vary[k], vary[k])))));
+    g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+    g.fillRect(rnd(0, w) | 0, rnd(0, h) | 0, 1, 1);
+  }
+}
+const TEX = {
+  grassTop: px(8, 8, (g, w, h) => speckle(g, w, h, '#5d9b3f', [30, 44, 22])),
+  stone: px(8, 8, (g, w, h) => speckle(g, w, h, '#8a8a8a', [22, 22, 22])),
+  mossy: px(8, 8, (g, w, h) => { speckle(g, w, h, '#8a8a8a', [22, 22, 22]);
+    for (let i = 0; i < 20; i++) { g.fillStyle = '#4f7a3a'; g.fillRect(rnd(0, w) | 0, rnd(0, h) | 0, 1, 1); } }),
+  obsidian: px(8, 8, (g, w, h) => speckle(g, w, h, '#241b33', [14, 8, 20])),
+};
+const mat = t => new THREE.MeshLambertMaterial({ map: t });
+
+/* ---------- 单侧世界 ---------- */
+function makeWorld(canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x79a6ff);
+  scene.fog = new THREE.Fog(0x79a6ff, 400, 1100);
+  const camera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
+  const controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.maxDistance = 600; controls.minDistance = 8;
+  scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x6b8f4f, 0.9));
+  scene.add(new THREE.DirectionalLight(0xfff2cc, 1.1).translateX(80).translateY(120).translateZ(-60));
+
+  const _m = new THREE.Matrix4();
+  { // 地板 25×25 草方块
+    const floor = new THREE.InstancedMesh(new THREE.BoxGeometry(4, 4, 4), mat(TEX.grassTop), 625);
+    let k = 0;
+    for (let i = 0; i < 25; i++) for (let j = 0; j < 25; j++) {
+      _m.setPosition(2 + i * 4, -2, 2 + j * 4); floor.setMatrixAt(k++, _m);
+    }
+    scene.add(floor);
+    const wall = new THREE.InstancedMesh(new THREE.BoxGeometry(4, 4, 4), mat(TEX.stone), 104);
+    let wk = 0;
+    for (let i = 0; i <= 25; i++) {
+      _m.setPosition(i * 4, 2, -2); wall.setMatrixAt(wk++, _m);
+      _m.setPosition(i * 4, 2, 102); wall.setMatrixAt(wk++, _m);
+      _m.setPosition(-2, 2, i * 4); wall.setMatrixAt(wk++, _m);
+      _m.setPosition(102, 2, i * 4); wall.setMatrixAt(wk++, _m);
+    }
+    wall.count = wk; scene.add(wall);
+  }
+  // 云
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  [[20, -30], [70, 30], [45, -70]].forEach(([cx, cz]) => {
+    const c = new THREE.Mesh(new THREE.BoxGeometry(rnd(30, 50), 4, rnd(20, 36)), cloudMat);
+    c.position.set(cx, 128, cz); scene.add(c);
+  });
+
+  /* 果蝇 (无意图名牌/无意图色 —— 盲评不泄密) */
+  const fly = new THREE.Group();
+  {
+    const body = new THREE.MeshLambertMaterial({ color: 0x3a2b1e });
+    const dark = new THREE.MeshLambertMaterial({ color: 0x241a12 });
+    const eye  = new THREE.MeshLambertMaterial({ color: 0xb02020 });
+    const wing = new THREE.MeshLambertMaterial({ color: 0xdfe8ff, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+    const thorax = new THREE.Mesh(new THREE.BoxGeometry(4.2, 3.0, 3.2), body);
+    const abdomen = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.6, 2.8), dark);
+    abdomen.position.x = -3.6; abdomen.position.y = -0.2;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.2), body);
+    head.position.x = 3.0;
+    const eL = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), eye); eL.position.set(3.4, 0.2, 1.2);
+    const eR = eL.clone(); eR.position.z = -1.2;
+    fly.add(thorax, abdomen, head, eL, eR);
+    const wingGeo = new THREE.BoxGeometry(1.2, 0.18, 5.2); wingGeo.translate(0, 0, 2.6);
+    const wL = new THREE.Mesh(wingGeo, wing); wL.position.set(-0.4, 1.8, 0.6);
+    const wR = new THREE.Mesh(wingGeo, wing); wR.position.set(-0.4, 1.8, -0.6);
+    fly.add(wL, wR);
+    for (let s = -1; s <= 1; s += 2) for (let i = 0; i < 3; i++) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.6, 0.35), dark);
+      leg.position.set(1.6 - i * 1.6, -2.4, s * 1.6);
+      leg.rotation.x = s * 0.5; fly.add(leg);
+    }
+    fly.userData.wL = wL; fly.userData.wR = wR;
+  }
+  scene.add(fly);
+
+  const TRAIL_N = 240;
+  const trail = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 1.8, 1.8),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }), TRAIL_N);
+  trail.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  trail.count = 0;
+  scene.add(trail);
+  const trailPos = [];
+
+  let content = null;  // 每对更换: 障碍柱 + 太阳
+  function loadRun(run) {
+    if (content) { content.forEach(o => scene.remove(o)); }
+    content = [];
+    const byMat = { mossy: [], obsidian: [] };
+    for (const o of run.meta.obstacles) {
+      const kind = o.h <= FLY_Z ? 'mossy' : 'obsidian';
+      for (let z = 2; z <= o.h; z += 4)
+        for (let gx = -o.r; gx <= o.r; gx += 4) for (let gz = -o.r; gz <= o.r; gz += 4)
+          if (gx * gx + gz * gz <= o.r * o.r)
+            byMat[kind].push([o.x + gx, z, o.y + gz]);
+    }
+    for (const [kind, list] of Object.entries(byMat)) {
+      if (!list.length) continue;
+      const im = new THREE.InstancedMesh(new THREE.BoxGeometry(4.05, 4.05, 4.05),
+        mat(kind === 'mossy' ? TEX.mossy : TEX.obsidian), list.length);
+      const m = new THREE.Matrix4();
+      list.forEach((p, i) => { m.setPosition(...p); im.setMatrixAt(i, m); });
+      scene.add(im); content.push(im);
+    }
+    const s = run.meta.sun_unit;
+    const sun = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 7),
+      new THREE.MeshBasicMaterial({ color: 0xffe08a }));
+    sun.position.set(50 + 55 * s[0], 22 + 60 * s[2], 50 + 55 * s[1]);
+    scene.add(sun); content.push(sun);
+    // 重置
+    trailPos.length = 0; trail.count = 0;
+    camera.position.set(130, 95, -150);
+    controls.target.set(50, 40, 50);
+  }
+  function update(s) {
+    fly.position.set(s.x, s.z, s.y);
+    fly.rotation.order = 'YZX';
+    fly.rotation.y = -THREE.MathUtils.degToRad(s.yaw);
+    fly.rotation.z = THREE.MathUtils.degToRad(s.pitch);
+    const flap = Math.sin(performance.now() * 0.045) * (0.55 + Math.min(s.speed, 30) / 40);
+    fly.userData.wL.rotation.x = 0.5 + flap;
+    fly.userData.wR.rotation.x = -0.5 - flap;
+    trailPos.push([s.x, s.z, s.y]);
+    if (trailPos.length > TRAIL_N) trailPos.shift();
+    trail.count = trailPos.length;
+    trailPos.forEach((p, i) => {
+      const sc = 1 - i / TRAIL_N * 0.6;
+      _m.makeScale(sc, sc, sc); _m.setPosition(...p); trail.setMatrixAt(i, _m);
+    });
+    trail.instanceMatrix.needsUpdate = true;
+  }
+  function resize(w, h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  return { renderer, scene, camera, controls, loadRun, update, resize };
+}
+
+/* ---------- 插值 ---------- */
+function lerpAngle(a, b, t) { let d = ((b - a + 540) % 360) - 180; return a + d * t; }
+function stateAt(run, idx) {
+  const F = run.frames, n = F.length;
+  const i0 = Math.max(0, Math.min(n - 1, idx | 0)), t = idx - i0;
+  const i1 = Math.min(n - 1, i0 + 1);
+  const a = F[i0], b = F[i1];
+  return {
+    x: a[1] + (b[1] - a[1]) * t, y: a[2] + (b[2] - a[2]) * t, z: a[3] + (b[3] - a[3]) * t,
+    yaw: lerpAngle(a[4], b[4], t), pitch: a[5], speed: a[6], t: a[0],
+  };
+}
+
+/* ---------- 评分流程 (schema 与 2D 页一致) ---------- */
+const worldL = makeWorld(document.getElementById('cvL'));
+const worldR = makeWorld(document.getElementById('cvR'));
+let pi = 0, fi = 0, playing = true, speed = 2;
+let results = [], choice = null, rateL = 0, rateR = 0;
+const $ = id => document.getElementById(id);
+
+function buildScale(id, cb) {
+  for (let k = 1; k <= 5; k++) {
+    const b = document.createElement('button');
+    b.textContent = k;
+    b.onclick = () => { $(id).querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); cb(k); refresh(); };
+    $(id).appendChild(b);
+  }
+}
+buildScale("rateL", v => { rateL = v; });
+buildScale("rateR", v => { rateR = v; });
+$('pickL').onclick = () => { choice = 'left'; refresh(); };
+$('pickR').onclick = () => { choice = 'right'; refresh(); };
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? '⏸' : '▶'; };
+$('spd').oninput = e => { speed = +e.target.value; $('spdv').textContent = speed + '×'; };
+$('next').onclick = next;
+
+function show() {
+  const p = DATA.pairs[pi];
+  worldL.loadRun(DATA.runs[p.left]);
+  worldR.loadRun(DATA.runs[p.right]);
+  fi = 0; playing = true; $('play').textContent = '⏸';
+  choice = null; rateL = 0; rateR = 0;
+  ['rateL', 'rateR'].forEach(id => $(id).querySelectorAll('button').forEach(x => x.classList.remove('sel')));
+  $('meta').textContent = `第 ${pi + 1}/${DATA.pairs.length} 对 · 评分者: ${RATER}`;
+  document.querySelector('#bar i').style.width = (100 * pi / DATA.pairs.length) + '%';
+  refresh();
+}
+function refresh() {
+  $('next').disabled = !(choice && rateL && rateR);
+  $('next').textContent = `下一对 (${pi + 1}/${DATA.pairs.length})`;
+  $('pickL').classList.toggle('pick-l', choice === 'left');
+  $('pickR').classList.toggle('pick-r', choice === 'right');
+}
+function next() {
+  const p = DATA.pairs[pi];
+  results.push({
+    trial: pi, rater: RATER, ts: new Date().toISOString(),
+    left: p.left, right: p.right,
+    rating_left: rateL, rating_right: rateR,
+    forced_choice: choice,
+    truth: p.truth || null,
+  });
+  try { localStorage.setItem("flylaya_rating3d_" + RATER, JSON.stringify(results)); } catch (e) {}
+  pi += 1;
+  if (pi < DATA.pairs.length) { show(); return; }
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('foot').style.display = 'none';
+  document.getElementById('top').style.display = 'none';
+  document.getElementById('doneWrap').style.display = 'flex';
+  document.querySelector('#bar i').style.width = '100%';
+  const blob = JSON.stringify({ experiment: "FlyLaya M4 blind rating 3D", rater: RATER, results }, null, 2);
+  document.getElementById('result').textContent = blob;
+  document.getElementById('dl').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([blob], { type: "application/json" }));
+    a.download = `flylaya_rating3d_${RATER}_${Date.now()}.json`;
+    a.click();
+  };
+}
+
+/* ---------- 主循环 ---------- */
+const clock = new THREE.Clock();
+function resize() {
+  const box = document.getElementById('cvL').parentElement.getBoundingClientRect();
+  worldL.resize(box.width, box.height);
+  worldR.resize(box.width, box.height);
+}
+addEventListener('resize', resize); resize();
+worldL.renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (playing && pi < DATA.pairs.length) {
+    const p = DATA.pairs[pi];
+    const n = DATA.runs[p.left].frames.length;
+    fi += dt * 10 * speed * 2;   // stride=2 采样
+    if (fi >= n - 1) { fi = n - 1; playing = false; $('play').textContent = '▶'; }
+    const sL = stateAt(DATA.runs[p.left], fi);
+    const sR = stateAt(DATA.runs[p.right], fi);
+    worldL.update(sL); worldR.update(sR);
+    $('clock').textContent = `${sL.t.toFixed(0)}s / 300s`;
+  }
+  worldL.controls.update(); worldR.controls.update();
+  worldL.renderer.render(worldL.scene, worldL.camera);
+  worldR.renderer.render(worldR.scene, worldR.camera);
+});
+window.__rating3d = { get pi() { return pi; }, get fi() { return fi; }, DATA, next, refresh };
+show();
+</script>
+</body>
+</html>

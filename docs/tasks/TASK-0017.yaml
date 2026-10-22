@@ -1,0 +1,8 @@
+version: 1
+taskId: TASK-0017
+claimId: CLM-01M3B2GWFMCTQMRQABT7D4RD8B
+agent:
+  role: backend
+  instanceId: backend-01m37jztcqbdkefxdefjn19nsf
+pid: 61182
+claimedAt: 2026-09-25T01:22:49.972Z

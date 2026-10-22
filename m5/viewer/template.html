@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>FlyLaya M5 观察器</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101216;
+    font-family: "Courier New", ui-monospace, monospace; color: #ddd; }
+  #main { display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    height: calc(100% - 132px); padding: 6px; box-sizing: border-box; }
+  .vp { position: relative; border: 2px solid #333; border-radius: 8px; overflow: hidden; }
+  .vp canvas { width: 100%; height: 100%; display: block; }
+  .vp .tag { position: absolute; top: 6px; left: 10px; font-size: 15px; font-weight: bold;
+    color: #fff; text-shadow: 2px 2px 0 #000; }
+  .vp .hint { position: absolute; bottom: 6px; left: 10px; font-size: 11px; color: #fff9;
+    text-shadow: 1px 1px 0 #000; }
+  .vp .sub { position: absolute; top: 6px; right: 10px; font-size: 11px; color: #fff9; }
+  #top { height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 12px; }
+  #bar { flex: 1; height: 10px; background: #222; border: 2px solid #000; position: relative; }
+  #bar i { display: block; height: 100%; width: 0; background: #7fb8ff; }
+  #bar .ev { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #ff6a4a; }
+  #foot { min-height: 84px; display: flex; align-items: center; gap: 10px; padding: 4px 12px;
+    flex-wrap: wrap; }
+  .rate { display: flex; gap: 4px; align-items: center; }
+  .rate span { font-size: 12px; color: #aaa; }
+  .rate button { min-width: 30px; padding: 5px 0; border: 1px solid #444; border-radius: 6px;
+    background: #2a2a2c; color: #ddd; cursor: pointer; font: inherit; }
+  .rate button.sel { background: #4a7fb5; color: #fff; }
+  #pickL.qsel, #pickR.qsel { background: #4a7fb5; color: #fff; }
+  button { border: 1px solid #444; border-radius: 6px; background: #2a2a2c; color: #ddd;
+    cursor: pointer; font: inherit; padding: 6px 12px; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  .train-badge { background: #7a5fb5; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
+  #diagHud { position: absolute; left: 12px; top: 46px; font-size: 12px; line-height: 1.5;
+    background: rgba(16,18,22,.8); padding: 8px 10px; border-radius: 8px;
+    text-shadow: 1px 1px 0 #000; z-index: 3; }
+  #doneWrap { position: fixed; inset: 0; background: #101216; display: none;
+    flex-direction: column; align-items: center; gap: 14px; padding: 30px; box-sizing: border-box; }
+  #doneWrap pre { max-width: 70vw; max-height: 46vh; overflow: auto; font-size: 11px;
+    background: #1a1a1e; padding: 12px; border-radius: 8px; }
+  .dim { color: #888; } .q { font-size: 13px; }
+</style>
+<script type="importmap">
+  { "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="top">
+  <b id="meta">加载中…</b>
+  <span id="clock">0s / 300s</span>
+  <button id="play">⏸</button>
+  <label>速度 <input id="spd" type="range" min="0.5" max="8" step="0.5" value="2"> <span id="spdv">2×</span></label>
+  <button id="viewBtn">俯视</button>
+  <button id="mirrorBtn">镜像:关</button>
+  <div id="bar"><i></i></div>
+</div>
+<div id="main">
+  <div class="vp"><canvas id="cvL"></canvas><div class="tag">左</div><div class="sub" id="subL"></div>
+    <div class="hint">拖拽旋转 · 滚轮缩放</div></div>
+  <div class="vp"><canvas id="cvR"></canvas><div class="tag">右</div><div class="sub" id="subR"></div>
+    <div class="hint">拖拽旋转 · 滚轮缩放</div></div>
+</div>
+<div id="foot">
+  <span class="q" id="q1text"></span>
+  <button id="pickL">← 左</button><button id="pickR">右 →</button>
+  <span class="q" id="q2text"></span>
+  <div class="rate" id="rateL"><span>左 1–5:</span></div>
+  <div class="rate" id="rateR"><span>右 1–5:</span></div>
+  <button id="pick2L">偏好←左</button><button id="pick2R">偏好右→</button>
+  <button id="next" disabled>下一对 (0/0)</button>
+</div>
+<div id="diagHud" style="display:none"></div>
+<div id="doneWrap">
+  <h2>完成!感谢评分</h2>
+  <pre id="result"></pre>
+  <button id="dl">下载结果 JSON</button>
+  <p style="color:#f88" id="doneNote"></p>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ===== 冻结渲染配置(正式盲评前不得改动; 两模式共用) ===== */
+const FREEZE = {
+  fov: 50, near: 1, far: 2000,
+  camTop:  { pos: [50, 170, 50.01], target: [50, 0, 50] },
+  camSide: { pos: [50, 46, -150],   target: [50, 42, 50] },
+  hemi: [0xcfe8ff, 0x6b8f4f, 0.9], dirLight: [0xfff2cc, 1.1],
+  trailN: 240, pixelRatioCap: 2, frameHz: 5 /* 数据 stride2@10Hz, 1×=真实速率 */,
+  flyScale: 1.0, antialias: false,
+};
+const MODE = "__MODE__";           // 'blind' | 'diag'
+const DATA = __DATA__;             // blind: {plan, runs(cid->bare), salt, hasRealRef}
+                                  // diag:  {plan, runs(name->full)}
+const INTENTS = ["phototaxis","avoid_obstacle","explore","center_in_arena","rest_hover"];
+const ICOLOR = { phototaxis:"#ffd27f", avoid_obstacle:"#ff6a4a", explore:"#6adf8a",
+                 center_in_arena:"#4a9fe4", rest_hover:"#8a8adf" };
+const BLIND = MODE === 'blind';
+const $ = id => document.getElementById(id);
+
+/* ===== 按评分者随机: 顺序 + 左右 (salt 复算, 无真值) ===== */
+const QS = new URLSearchParams(location.search);
+const RATER = QS.get("rater") || "anonymous";
+function rngFrom(str) { // mulberry32(string hash) — 与 aggregate.py 同式
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return () => { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+const SALT = DATA.salt || "nosalt";
+const orderRng = rngFrom(SALT + "|order|" + RATER);
+const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) {
+  const j = (orderRng() * (i + 1)) | 0; [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+// 训练题固定在前(训练题内/正式题内各自按评分者乱序)
+const idxOf = want => shuffle(DATA.plan.map((t, i) => [t.training, i])
+  .filter(x => x[0] === want).map(x => x[1]));
+const trialIdx = [...idxOf(true), ...idxOf(false)];
+const sideRng = rngFrom(SALT + "|side|" + RATER);
+const flip = DATA.plan.map(() => sideRng() < 0.5); // true: swap L/R for that trial
+
+/* ===== 双视窗世界(同一引擎两实例) ===== */
+function makeWorld(canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: FREEZE.antialias });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, FREEZE.pixelRatioCap));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x79a6ff);
+  scene.fog = new THREE.Fog(0x79a6ff, 400, 1100);
+  const camera = new THREE.PerspectiveCamera(FREEZE.fov, 1, FREEZE.near, FREEZE.far);
+  scene.add(new THREE.HemisphereLight(...FREEZE.hemi));
+  const sun = new THREE.DirectionalLight(...FREEZE.dirLight);
+  sun.target.position.set(50, 20, 50); scene.add(sun, sun.target);
+  return { renderer, scene, camera, sun, root: null };
+}
+const WL = makeWorld($('cvL')), WR = makeWorld($('cvR'));
+const WORLDS = [WL, WR];
+
+/* 像素纹理 */
+const rndT = (a, b) => a + Math.random() * (b - a);
+function speckTex(base, vary) {
+  const c = document.createElement('canvas'); c.width = c.height = 8;
+  const g = c.getContext('2d');
+  const b = [1, 3, 5].map(i => parseInt(base.slice(i, i + 2), 16));
+  g.fillStyle = base; g.fillRect(0, 0, 8, 8);
+  for (let i = 0; i < 400; i++) { const v = rndT(-1, 1);
+    g.fillStyle = `rgb(${b.map((cc, j) => Math.round(Math.max(0, Math.min(255, cc + v * vary[j])))).join(',')})`;
+    g.fillRect(rndT(0, 8) | 0, rndT(0, 8) | 0, 1, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const matGrass = new THREE.MeshLambertMaterial({ map: speckTex('#5d9b3f', [30, 44, 22]), side: THREE.DoubleSide });
+const matStone = new THREE.MeshLambertMaterial({ map: speckTex('#8a8a8a', [22, 22, 22]), side: THREE.DoubleSide });
+const matMoss  = new THREE.MeshLambertMaterial({ map: speckTex('#8a8a8a', [22, 22, 22]), side: THREE.DoubleSide });
+const matObs   = new THREE.MeshLambertMaterial({ map: speckTex('#241b33', [14, 8, 20]), side: THREE.DoubleSide });
+
+function buildArena(scene, meta) {  // 地板+墙+障碍+太阳方块 (observable 世界, 两模式同)
+  const m = new THREE.Matrix4();
+  const floor = new THREE.InstancedMesh(new THREE.BoxGeometry(4, 4, 4), matGrass, 625);
+  let k = 0;
+  for (let i = 0; i < 25; i++) for (let j = 0; j < 25; j++) {
+    m.setPosition(2 + i * 4, -2, 2 + j * 4); floor.setMatrixAt(k++, m); }
+  scene.add(floor);
+  const wall = new THREE.InstancedMesh(new THREE.BoxGeometry(4, 4, 4), matStone, 104);
+  let wk = 0;
+  for (let i = 0; i <= 25; i++) {
+    m.setPosition(i * 4, 2, -2); wall.setMatrixAt(wk++, m);
+    m.setPosition(i * 4, 2, 102); wall.setMatrixAt(wk++, m);
+    m.setPosition(-2, 2, i * 4); wall.setMatrixAt(wk++, m);
+    m.setPosition(102, 2, i * 4); wall.setMatrixAt(wk++, m); }
+  scene.add(wall);
+  for (const o of meta.obstacles) {
+    const kind = o.h <= 49 ? matMoss : matObs;
+    const cells = [];
+    for (let z = 2; z <= o.h; z += 4)
+      for (let gx = -o.r; gx <= o.r; gx += 4) for (let gz = -o.r; gz <= o.r; gz += 4)
+        if (gx * gx + gz * gz <= o.r * o.r) cells.push([o.x + gx, z, o.y + gz]);
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(4.05, 4.05, 4.05), kind, cells.length);
+    cells.forEach((p, i) => { m.setPosition(...p); im.setMatrixAt(i, m); });
+    scene.add(im);
+  }
+  const s = meta.sun_unit;
+  const sun = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 7),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a }));
+  sun.position.set(50 + 55 * s[0], 22 + 60 * s[2], 50 + 55 * s[1]);
+  scene.add(sun);
+  return sun;
+}
+function buildFly(scene) {
+  const fly = new THREE.Group();
+  const ds = opt => new THREE.MeshLambertMaterial({ ...opt, side: THREE.DoubleSide });
+  const body = ds({ color: 0x3a2b1e }), dark = ds({ color: 0x241a12 }),
+        eye = ds({ color: 0xb02020 }), wing = ds({ color: 0xdfe8ff, transparent: true, opacity: 0.55 });
+  const add = (geo, mat, x, y, z) => { const me = new THREE.Mesh(geo, mat); me.position.set(x, y, z); fly.add(me); return me; };
+  add(new THREE.BoxGeometry(4.2, 3.0, 3.2), body, 0, 0, 0);
+  add(new THREE.BoxGeometry(3.4, 2.6, 2.8), dark, -3.6, -0.2, 0);
+  add(new THREE.BoxGeometry(2.2, 2.2, 2.2), body, 3.0, 0, 0);
+  add(new THREE.BoxGeometry(1.8, 1.8, 1.8), eye, 3.4, 0.2, 1.2);
+  add(new THREE.BoxGeometry(1.8, 1.8, 1.8), eye, 3.4, 0.2, -1.2);
+  const wingGeo = new THREE.BoxGeometry(1.2, 0.18, 5.2); wingGeo.translate(0, 0, 2.6);
+  const wL = add(wingGeo, wing, -0.4, 1.8, 0.6), wR = add(wingGeo, wing, -0.4, 1.8, -0.6);
+  for (let sg = -1; sg <= 1; sg += 2) for (let i = 0; i < 3; i++) {
+    const leg = add(new THREE.BoxGeometry(0.35, 2.6, 0.35), dark, 1.6 - i * 1.6, -2.4, sg * 1.6);
+    leg.rotation.x = sg * 0.5; }
+  const tagC = document.createElement('canvas'); tagC.width = 256; tagC.height = 48;
+  const tagT = new THREE.CanvasTexture(tagC); tagT.magFilter = THREE.NearestFilter;
+  const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagT, depthTest: false }));
+  tag.scale.set(24, 4.5, 1); tag.position.y = 8; fly.add(tag);
+  const trail = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 1.8, 1.8),
+    new THREE.MeshBasicMaterial({ color: BLIND ? 0x88aaff : 0xffffff, transparent: true, opacity: 0.8 }),
+    FREEZE.trailN);
+  trail.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(fly, trail);
+  return { fly, wL, wR, tag, tagC, tagT, trail, trailPos: [] };
+}
+const _m4 = new THREE.Matrix4(); const _c = new THREE.Color();
+function stateAt(run, idx) {
+  const fr = run.frames, n = fr.length;
+  const i0 = Math.max(0, Math.min(n - 1, idx | 0)), t = idx - i0, i1 = Math.min(n - 1, i0 + 1);
+  const a = fr[i0], b = fr[i1];
+  const la = (x, y) => { let d = ((y - x + 540) % 360) - 180; return x + d * t; };
+  return { x: a[1] + (b[1] - a[1]) * t, y: a[2] + (b[2] - a[2]) * t, z: a[3] + (b[3] - a[3]) * t,
+           yaw: la(a[4], b[4]), pitch: a[5] + (b[5] - a[5]) * t, speed: a[6],
+           intent: BLIND ? null : INTENTS[a[7]], conf: BLIND ? null : a[8],
+           arousal: BLIND ? null : a[9], dn: BLIND ? null : a[10], t: a[0] };
+}
+function applyState(F, s, now) {
+  F.fly.position.set(s.x, s.z, s.y);
+  F.fly.rotation.order = 'YZX';
+  F.fly.rotation.y = -THREE.MathUtils.degToRad(s.yaw);
+  F.fly.rotation.z = THREE.MathUtils.degToRad(s.pitch);
+  const flap = Math.sin(now * 0.045) * (0.55 + Math.min(s.speed, 30) / 40);
+  F.wL.rotation.x = 0.5 + flap; F.wR.rotation.x = -0.5 - flap;
+  if (F.trailPos.length && (F.trailTick = (F.trailTick || 0) + 1) % 2 === 0) {
+    F.trailPos.push([s.x, s.z, s.y, BLIND ? '#88aaff' : (ICOLOR[s.intent] || '#88aaff')]);
+    if (F.trailPos.length > FREEZE.trailN) F.trailPos.shift();
+    F.trail.count = F.trailPos.length;
+    F.trailPos.forEach((p, i) => { const kk = 1 - i / FREEZE.trailN * 0.6;
+      _m4.makeScale(kk, kk, kk); _m4.setPosition(p[0], p[1], p[2]);
+      F.trail.setMatrixAt(i, _m4); F.trail.setColorAt(i, _c.set(p[3])); });
+    F.trail.instanceMatrix.needsUpdate = true;
+    if (F.trail.instanceColor) F.trail.instanceColor.needsUpdate = true;
+  } else if (!F.trailPos.length) {
+    F.trailPos.push([s.x, s.z, s.y, BLIND ? '#88aaff' : (ICOLOR[s.intent] || '#88aaff')]);
+  }
+}
+
+/* ===== 相机: 俯/侧 预设(冻结), 统一比例尺 ===== */
+let view = 'side';
+const controls = WORLDS.map(w => {
+  const c = { target: new THREE.Vector3(...FREEZE.camSide.target), autoRotate: false };
+  w.camera.position.set(...FREEZE.camSide.pos);
+  return c;
+});
+function setView(v) {
+  view = v;
+  const p = v === 'top' ? FREEZE.camTop : FREEZE.camSide;
+  WORLDS.forEach((w, i) => { w.camera.position.set(...p.pos); controls[i].target.set(...p.target); });
+}
+$('viewBtn').onclick = () => { setView(view === 'top' ? 'side' : 'top'); $('viewBtn').textContent = view === 'top' ? '侧视' : '俯视'; };
+let mirrored = false;
+$('mirrorBtn').onclick = () => { mirrored = !mirrored; $('mirrorBtn').textContent = mirrored ? '镜像:开' : '镜像:关';
+  WORLDS.forEach(w => { if (w.root) w.root.scale.x = mirrored ? -1 : 1; }); };
+
+/* 简易轨道控制(滚轮缩放+拖拽绕目标; 两视窗同参数同比例) */
+function orbit(w, ctl, canvas) {
+  let drag = null;
+  canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!drag) return;
+    const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; drag = [e.clientX, e.clientY];
+    const off = w.camera.position.clone().sub(ctl.target);
+    const sph = new THREE.Spherical().setFromVector3(off);
+    sph.theta -= dx * 0.005; sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi - dy * 0.005));
+    w.camera.position.copy(ctl.target).add(off.setFromSpherical(sph)); });
+  canvas.addEventListener('pointerup', () => drag = null);
+  canvas.addEventListener('wheel', e => { e.preventDefault();
+    const off = w.camera.position.clone().sub(ctl.target);
+    off.multiplyScalar(Math.max(0.8, Math.min(1.25, 1 + Math.sign(e.deltaY) * 0.1)));
+    if (off.length() > 20 && off.length() < 900) w.camera.position.copy(ctl.target).add(off); }, { passive: false });
+}
+orbit(WL, controls[0], $('cvL')); orbit(WR, controls[1], $('cvR'));
+
+/* ===== 播放 ===== */
+let fi = 0, playing = true, speed = 2, pi = 0;
+const results = [];
+const LS_KEY = 'flylaya_m5_' + MODE + '_' + RATER;
+try { const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (s) { results.push(...s.records); pi = s.pi; } } catch (e) {}
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? '⏸' : '▶'; };
+$('spd').oninput = e => { speed = +e.target.value; $('spdv').textContent = speed + '×'; };
+
+function loadTrial() {
+  if (pi >= DATA.plan.length) return finish();
+  const tr = DATA.plan[trialIdx[pi]];
+  const pair = flip[trialIdx[pi]] ? [...tr.pair].reverse() : tr.pair;
+  WORLDS.forEach(w => { if (w.root) w.scene.remove(w.root); w.root = null; });
+  [WL, WR].forEach((w, i) => {
+    const run = DATA.runs[pair[i]];
+    w.root = new THREE.Group();
+    buildArena(w.root, run.meta);
+    const s = run.meta.sun_unit;
+    w.sun.position.set(50 + 300 * s[0], 20 + 300 * s[2], 50 + 300 * s[1]);
+    w.root.add(w.sun);
+    w.F = buildFly(w.root);
+    w.root.scale.x = mirrored ? -1 : 1;
+    w.scene.add(w.root);
+    w.run = run;
+    w.F.trailPos = [];
+    applyState(w.F, stateAt(run, 0), performance.now());
+  });
+  fi = 0;
+  const bar = $('bar');
+  bar.querySelectorAll('.ev').forEach(e => e.remove());
+  if (!BLIND && WL.run.events && WL.run.events.length) {
+    const tMax = WL.run.frames[WL.run.frames.length - 1][0] || 300;
+    for (const ev of WL.run.events) {
+      const d = document.createElement('i'); d.className = 'ev';
+      d.style.left = (Math.min(100, ev[0] / tMax * 100)) + '%'; bar.appendChild(d);
+    }
+  }
+  const nMain = DATA.plan.filter(t => !t.training).length;
+  $('meta').innerHTML = (tr.training ? '<span class="train-badge">训练题</span> ' : '') +
+    `第 ${pi - TRAINING_SHOWN + 1}/${DATA.plan.length} 对 · 评分者: ${RATER}` + (BLIND ? '' : ` · <span class="dim">trial#${trialIdx[pi]}</span>`);
+  $('subL').textContent = BLIND ? '' : (WL.run.name || pair[0]);
+  $('subR').textContent = BLIND ? '' : (WR.run.name || pair[1]);
+  $('q1text').textContent = 'Q1 任务判断: 哪段更明确地趋向目标/避开障碍?';
+  $('q2text').textContent = DATA.hasRealRef
+    ? 'Q2 生物拟真: 参照真实果蝇轨迹, 哪段更接近真实?'
+    : 'Q2 方案间偏好(无真实参照, 不称拟真): 你更愿意称哪段「更像果蝇」?';
+  rateL_sel = rateR_sel = q1 = q2 = null;
+  [...$('rateL').querySelectorAll('button')].forEach(b => b.classList.remove('sel'));
+  [...$('rateR').querySelectorAll('button')].forEach(b => b.classList.remove('sel'));
+  $('pickL').classList.remove('qsel'); $('pickR').classList.remove('qsel');
+  $('pick2L').classList.remove('qsel'); $('pick2R').classList.remove('qsel');
+  updateNext();
+}
+let TRAINING_SHOWN = 0;
+for (const r of [$('rateL'), $('rateR')]) for (let i = 1; i <= 5; i++) {
+  const b = document.createElement('button'); b.textContent = i;
+  b.onclick = () => { [...r.querySelectorAll('button')].forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel'); (r === $('rateL') ? setRateL : setRateR)(i); };
+  r.appendChild(b);
+}
+let rateL_sel = null, rateR_sel = null, q1 = null, q2 = null;
+const setRateL = v => { rateL_sel = v; updateNext(); };
+const setRateR = v => { rateR_sel = v; updateNext(); };
+$('pickL').onclick = () => { q1 = 'L'; $('pickL').classList.add('qsel'); $('pickR').classList.remove('qsel'); updateNext(); };
+$('pickR').onclick = () => { q1 = 'R'; $('pickR').classList.add('qsel'); $('pickL').classList.remove('qsel'); updateNext(); };
+$('pick2L').onclick = () => { q2 = 'L'; $('pick2L').classList.add('qsel'); $('pick2R').classList.remove('qsel'); updateNext(); };
+$('pick2R').onclick = () => { q2 = 'R'; $('pick2R').classList.add('qsel'); $('pick2L').classList.remove('qsel'); updateNext(); };
+function curPairCids() { const tr = DATA.plan[trialIdx[pi]];
+  return flip[trialIdx[pi]] ? [...tr.pair].reverse() : tr.pair; }
+function updateNext() {
+  const ready = q1 && q2 && rateL_sel && rateR_sel;
+  $('next').disabled = !ready;
+  $('next').textContent = `下一对 (${pi}/${DATA.plan.length})`;
+}
+$('next').onclick = () => {
+  const tr = DATA.plan[trialIdx[pi]];
+  const [cl, cr] = curPairCids();
+  results.push({ tid: trialIdx[pi], training: !!tr.training, ts: new Date().toISOString(),
+    clip_l: cl, clip_r: cr,
+    q1_choice: q1, q2_choice: q2, rating_l: rateL_sel, rating_r: rateR_sel });
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ pi: pi + 1, records: results })); } catch (e) {}
+  pi += 1; loadTrial();
+};
+function finish() {
+  playing = false;
+  $('doneWrap').style.display = 'flex';
+  $('result').textContent = JSON.stringify({ experiment: 'FlyLaya M5 blind v2', mode: MODE,
+    rater: RATER, salt: SALT, records: results }, null, 1);
+  $('doneNote').textContent = BLIND
+    ? '盲评模式导出仅含匿名 clip id(不含真值); 直接交回, 请勿修改。'
+    : '诊断模式导出含文件名, 仅用于调试, 不得作盲评数据。';
+}
+$('dl').onclick = () => {
+  const blob = new Blob([$('result').textContent], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `flylaya_m5_${MODE}_${RATER}_${Date.now()}.json`;
+  a.click();
+};
+
+/* ===== 诊断 HUD (仅 diag) ===== */
+if (!BLIND) {
+  $('diagHud').style.display = 'block';
+}
+function updateDiag() {
+  if (BLIND) return;
+  const full = stateAt(WL.run, fi);
+  const dnTxt = full.dn ? Object.entries(full.dn).map(([k2, v]) => `${k2} ${v}`).join(' · ')
+                        .slice(0, 90) : '无 DN 数据(m4 源/m5 未含)';
+  $('diagHud').innerHTML =
+    `左: ${WL.run.name || '?'}<br>t ${full.t.toFixed(0)}s · speed ${full.speed.toFixed(1)}cm/s · yaw ${(full.yaw % 360).toFixed(0)}°<br>` +
+    `intent <b style="color:${ICOLOR[full.intent] || '#888'}">${full.intent}</b> conf ${full.conf?.toFixed(2)} arousal ${full.arousal?.toFixed(1)}<br>` +
+    `事件: ${(!BLIND && WL.run.events && WL.run.events.length) ? WL.run.events.length + ' 条(红标)' : '无'} · DN: ${dnTxt}`;
+}
+
+/* ===== 主循环 ===== */
+const clock = new THREE.Clock();
+function resize() {
+  WORLDS.forEach(w => { const c = w.renderer.domElement;
+    w.renderer.setSize(c.clientWidth, c.clientHeight, false);
+    w.camera.aspect = c.clientWidth / c.clientHeight; w.camera.updateProjectionMatrix(); });
+}
+addEventListener('resize', resize);
+let hudTick = 0;
+rendererLoop();
+function rendererLoop() {
+  requestAnimationFrame(rendererLoop);
+  const dt = clock.getDelta();
+  if (playing && WL.run) {
+    fi += dt * FREEZE.frameHz * speed;
+    const n = WL.run.frames.length;
+    if (fi >= n - 1) { fi = n - 1; playing = false; $('play').textContent = '▶'; }
+    const now = performance.now();
+    WORLDS.forEach(w => applyState(w.F, stateAt(w.run, fi), now));
+    if (hudTick++ % 4 === 0) {
+      const s = stateAt(WL.run, fi);
+      $('clock').textContent = s.t.toFixed(0) + 's / ' + WL.run.frames[WL.run.frames.length - 1][0].toFixed(0) + 's';
+      document.querySelector('#bar i').style.width = (fi / n * 100) + '%';
+      if (!BLIND) { // 名牌(意图)仅诊断模式
+        const c = WL.F.tagC.getContext('2d');
+        c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(0, 0, 256, 48);
+        c.font = 'bold 26px monospace'; c.textAlign = 'center';
+        const st = stateAt(WL.run, fi);
+        c.fillStyle = ICOLOR[st.intent] || '#fff';
+        c.fillText(`${st.intent} ${st.conf?.toFixed(2)}`, 128, 33);
+        WL.F.tagT.needsUpdate = true;
+      }
+      updateDiag();
+    }
+  }
+  WORLDS.forEach(w => { if (w.run) w.camera.lookAt(controls[WORLDS.indexOf(w)].target); w.renderer.render(w.scene, w.camera); });
+}
+resize();
+loadTrial();
+</script>
+</body>
+</html>

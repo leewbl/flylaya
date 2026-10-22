@@ -1,0 +1,49 @@
+{
+  "sealed_at": "2026-09-25",
+  "purpose": "M5 confirmation-batch seeds, sealed before exploration (design 7.1)",
+  "n": 32,
+  "draw_range": [
+    10000,
+    100000
+  ],
+  "rng": "random.Random(20260925).sample(range(10000,100000),32), sorted",
+  "exploration_allowed_range": [
+    1,
+    9999
+  ],
+  "seeds": [
+    10600,
+    11103,
+    11228,
+    20980,
+    24486,
+    25370,
+    27033,
+    34922,
+    39300,
+    40775,
+    41063,
+    43360,
+    44669,
+    48679,
+    53177,
+    54997,
+    61463,
+    66580,
+    70082,
+    73785,
+    75850,
+    76870,
+    77814,
+    84204,
+    84263,
+    85353,
+    86423,
+    88092,
+    90358,
+    90400,
+    96949,
+    98650
+  ],
+  "sha256_of_payload_without_hash": "5ad4a4371f4abbd75e9c595abb28d82706c9eb28fb42225fe77ed0c11e54caa5"
+}

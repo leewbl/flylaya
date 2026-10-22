@@ -1,0 +1,43 @@
+{
+  "config_id": "D_random_intent",
+  "label": "connectome brain, random intent per decision epoch (uniform over the 5 intents, seeded)",
+  "brain": "connectome",
+  "intent_source": "random",
+  "random": {
+    "intents": [
+      "phototaxis",
+      "avoid_obstacle",
+      "explore",
+      "center_in_arena",
+      "rest_hover"
+    ],
+    "uniform": true,
+    "arousal": 1.0,
+    "decision_every_n_frames": 3
+  },
+  "arena": {
+    "size_cm": 100,
+    "obstacle_columns": 7,
+    "sun": "directional"
+  },
+  "run": {
+    "duration_s": 300,
+    "bio_frame_hz": 10,
+    "seeds": [
+      11,
+      22,
+      33,
+      44,
+      55,
+      66,
+      77,
+      88,
+      99,
+      111
+    ]
+  },
+  "logging": {
+    "trajectory_jsonl": true,
+    "laya_call_jsonl": false
+  }
+}

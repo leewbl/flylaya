@@ -1,0 +1,19 @@
+{
+  "schema_version": "flylaya.scene.v1",
+  "scene_id": "S0_neutral",
+  "version": 1,
+  "arena_m": [1.0, 1.0, 1.0],
+  "duration_s": 30,
+  "decision_dt_s": 0.3,
+  "neural_dt_s": 0.1,
+  "start": {"position_m": [0.5, 0.5, 0.5], "yaw_deg": 90, "speed_m_s": 0.12},
+  "light": {"mode": "uniform", "level": 0.45},
+  "obstacles": [],
+  "events": [],
+  "mirror_axis": "x",
+  "random_streams": ["scene", "controller", "neural", "motor"],
+  "windows": [
+    {"name": "baseline", "t_s": [0.0, 5.0]},
+    {"name": "observe", "t_s": [5.0, 30.0]}
+  ]
+}

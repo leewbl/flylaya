@@ -1,0 +1,153 @@
+{
+ "_warning": "\u771f\u503c\u94a5\u5319: \u79bb\u7ebf\u4fdd\u7ba1, \u4e25\u7981\u53d1\u7ed9\u8bc4\u5206\u8005/\u5d4c\u5165\u9875\u9762; aggregate.py \u4e13\u7528",
+ "salt": "flylaya-m5-blind-v1",
+ "clips": {
+  "c69f1fa1824": {
+   "run": "A_full_75850",
+   "config": "A_full",
+   "seed": 75850,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "ca96d656968": {
+   "run": "A_full_76870",
+   "config": "A_full",
+   "seed": 76870,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c6e9af276f8": {
+   "run": "A_full_77814",
+   "config": "A_full",
+   "seed": 77814,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "cbb45aac58a": {
+   "run": "A_full_84204",
+   "config": "A_full",
+   "seed": 84204,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "cd1653faf21": {
+   "run": "A_full_85353",
+   "config": "A_full",
+   "seed": 85353,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "ca7167bb9b5": {
+   "run": "A_full_86423",
+   "config": "A_full",
+   "seed": 86423,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "cc1a055b60a": {
+   "run": "A_full_90358",
+   "config": "A_full",
+   "seed": 90358,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c05a1eeb1e6": {
+   "run": "A_full_90400",
+   "config": "A_full",
+   "seed": 90400,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "cb986caafbb": {
+   "run": "X_abd1_76870",
+   "config": "X_abd1",
+   "seed": 76870,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "cdeb15d6387": {
+   "run": "X_abd1_77814",
+   "config": "X_abd1",
+   "seed": 77814,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "ce9a3090b50": {
+   "run": "X_abd1_84204",
+   "config": "X_abd1",
+   "seed": 84204,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c32dad9ae5f": {
+   "run": "X_abd1_84263",
+   "config": "X_abd1",
+   "seed": 84263,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c1736d51218": {
+   "run": "X_abd1_85353",
+   "config": "X_abd1",
+   "seed": 85353,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "ceab7a60095": {
+   "run": "X_abd1_86423",
+   "config": "X_abd1",
+   "seed": 86423,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c62f56aeb87": {
+   "run": "X_abd1_88092",
+   "config": "X_abd1",
+   "seed": 88092,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c7b4e2b83ac": {
+   "run": "X_abd1_90400",
+   "config": "X_abd1",
+   "seed": 90400,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c4baa270198": {
+   "run": "X_abd2_76870",
+   "config": "X_abd2",
+   "seed": 76870,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c0129478f28": {
+   "run": "X_abd2_77814",
+   "config": "X_abd2",
+   "seed": 77814,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c3faeccaac9": {
+   "run": "X_abd2_84204",
+   "config": "X_abd2",
+   "seed": 84204,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "ca15d192bd3": {
+   "run": "X_abd2_88092",
+   "config": "X_abd2",
+   "seed": 88092,
+   "brain": "connectome",
+   "intent_source": null
+  },
+  "c9894503580": {
+   "run": "X_abd2_90358",
+   "config": "X_abd2",
+   "seed": 90358,
+   "brain": "connectome",
+   "intent_source": null
+  }
+ }
+}

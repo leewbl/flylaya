@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>FlyLaya 盲评 — 哪个更像真果蝇?</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 0; background: #111; color: #ddd; }
+  header { padding: 14px 20px; background: #1d1d1f; border-bottom: 1px solid #333; }
+  h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  #meta { font-size: 12px; color: #888; margin-top: 3px; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px 20px; max-width: 1200px; margin: 0 auto; }
+  .panel { background: #1d1d1f; border: 1px solid #333; border-radius: 10px; padding: 10px; }
+  .panel h2 { font-size: 13px; margin: 2px 0 8px; color: #9cf; }
+  video { width: 100%; background: #000; border-radius: 6px; }
+  .rate { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .rate label { font-size: 11px; color: #aaa; width: 100%; }
+  .rate button { flex: 1; min-width: 34px; padding: 6px 0; border: 1px solid #444; border-radius: 6px; background: #2a2a2c; color: #ddd; cursor: pointer; }
+  .rate button.sel { background: #4a7fd4; border-color: #6a9fe4; color: #fff; }
+  footer { position: sticky; bottom: 0; background: #1d1d1f; border-top: 1px solid #333; padding: 12px 20px; display: flex; gap: 12px; align-items: center; justify-content: center; }
+  #choice { display: flex; gap: 10px; }
+  #choice button { padding: 10px 22px; font-size: 14px; border-radius: 8px; border: 1px solid #555; background: #333; color: #fff; cursor: pointer; }
+  #choice button.pick-l { box-shadow: 0 0 0 2px #4a7fd4; }
+  #choice button.pick-r { box-shadow: 0 0 0 2px #d46a4a; }
+  #next { padding: 10px 26px; font-size: 14px; border-radius: 8px; border: none; background: #4a7fd4; color: #fff; cursor: pointer; }
+  #next:disabled { background: #333; color: #777; cursor: not-allowed; }
+  #bar { height: 4px; background: #333; } #bar i { display: block; height: 100%; background: #4a7fd4; }
+  .hidden { display: none; }
+  #done pre { background:#000; padding:10px; border-radius:8px; max-height:300px; overflow:auto; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FlyLaya 盲评:两段回放,哪个更像真果蝇的飞行?</h1>
+  <div id="meta"></div>
+  <div id="bar"><i></i></div>
+</header>
+
+<main id="trial">
+  <div class="panel">
+    <h2>左侧回放</h2>
+    <video id="vidL" controls loop muted playsinline></video>
+    <div class="rate" id="rateL"><label>单独评分:像真果蝇吗?(1=完全不像,5=非常像)</label></div>
+  </div>
+  <div class="panel">
+    <h2>右侧回放</h2>
+    <video id="vidR" controls loop muted playsinline></video>
+    <div class="rate" id="rateR"><label>单独评分:像真果蝇吗?(1=完全不像,5=非常像)</label></div>
+  </div>
+</main>
+
+<main id="done" class="hidden">
+  <div class="panel" style="grid-column: 1 / -1">
+    <h2>评分完成 — 结果 JSON(含配置真值,勿向评分者展示)</h2>
+    <pre id="result"></pre>
+    <button id="dl">下载结果 JSON</button>
+  </div>
+</main>
+
+<footer id="foot">
+  <div id="choice">
+    <button id="pickL">← 左侧更像</button>
+    <button id="pickR">右侧更像 →</button>
+  </div>
+  <button id="next" disabled>下一对 (0/0)</button>
+</footer>
+
+<script>
+const QS = new URLSearchParams(location.search);
+const MANIFEST = QS.get("manifest") || "manifest.json";
+const RATER = QS.get("rater") || "anonymous";
+
+let trials = [], i = 0, results = [];
+let choice = null, rateL = 0, rateR = 0;
+
+async function boot() {
+  const m = await (await fetch(MANIFEST)).json();
+  trials = m.trials;
+  document.getElementById("meta").textContent =
+    `${m.experiment || "FlyLaya M4"} · ${trials.length} 对 · 评分者: ${RATER} · 结果保留在本机,完成后导出`;
+  document.querySelector("#bar i").style.width = "0%";
+  buildScale("rateL", v => { rateL = v; refresh(); });
+  buildScale("rateR", v => { rateR = v; refresh(); });
+  document.getElementById("pickL").onclick = () => { choice = "left"; refresh(); };
+  document.getElementById("pickR").onclick = () => { choice = "right"; refresh(); };
+  document.getElementById("next").onclick = next;
+  show();
+}
+
+function buildScale(id, cb) {
+  const host = document.getElementById(id);
+  for (let k = 1; k <= 5; k++) {
+    const b = document.createElement("button");
+    b.textContent = k;
+    b.onclick = () => {
+      host.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
+      b.classList.add("sel");
+      cb(k);
+    };
+    host.appendChild(b);
+  }
+}
+
+function show() {
+  const t = trials[i];
+  document.getElementById("vidL").src = t.left;
+  document.getElementById("vidR").src = t.right;
+  document.getElementById("vidL").play().catch(() => {});
+  document.getElementById("vidR").play().catch(() => {});
+  document.getElementById("meta").textContent =
+    `第 ${i + 1}/${trials.length} 对 · 两段均为 5 分钟回放的完整记录 · 请先单独评分再选更像的一方`;
+  choice = null; rateL = 0; rateR = 0;
+  ["rateL", "rateR"].forEach(id => document.querySelectorAll(`#${id} button`)
+    .forEach(x => x.classList.remove("sel")));
+  document.getElementById("pickL").classList.remove("pick-l");
+  document.getElementById("pickR").classList.remove("pick-r");
+  document.querySelector("#bar i").style.width = (100 * i / trials.length) + "%";
+  refresh();
+}
+
+function refresh() {
+  const ok = choice && rateL && rateR;
+  document.getElementById("next").disabled = !ok;
+  document.getElementById("next").textContent =
+    `下一对 (${i + 1}/${trials.length})`;
+  document.getElementById("pickL").classList.toggle("pick-l", choice === "left");
+  document.getElementById("pickR").classList.toggle("pick-r", choice === "right");
+}
+
+function next() {
+  const t = trials[i];
+  results.push({
+    trial: i, rater: RATER, ts: new Date().toISOString(),
+    left: t.left, right: t.right,
+    rating_left: rateL, rating_right: rateR,
+    forced_choice: choice,
+    truth: t.truth || null,          // {left: "A_full", right: "D_random_intent"} — 评分者不可见来源
+  });
+  try { localStorage.setItem("flylaya_rating_" + RATER, JSON.stringify(results)); } catch (e) {}
+  i += 1;
+  if (i < trials.length) { show(); return; }
+  document.getElementById("trial").classList.add("hidden");
+  document.getElementById("foot").classList.add("hidden");
+  document.getElementById("done").classList.remove("hidden");
+  document.querySelector("#bar i").style.width = "100%";
+  const blob = JSON.stringify({ experiment: "FlyLaya M4 blind rating", rater: RATER, results }, null, 2);
+  document.getElementById("result").textContent = blob;
+  document.getElementById("dl").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([blob], { type: "application/json" }));
+    a.download = `flylaya_rating_${RATER}_${Date.now()}.json`;
+    a.click();
+  };
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+{
+  "experiment": "FlyLaya M4 blind rating 3D",
+  "rater": "csx",
+  "results": [
+    {
+      "trial": 0,
+      "rater": "csx",
+      "ts": "2026-09-25T14:49:27.848Z",
+      "left": "A_full_55",
+      "right": "B_no_laya_22",
+      "rating_left": 5,
+      "rating_right": 1,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_22"
+      }
+    },
+    {
+      "trial": 1,
+      "rater": "csx",
+      "ts": "2026-09-25T14:49:48.953Z",
+      "left": "B_no_laya_111",
+      "right": "A_full_11",
+      "rating_left": 1,
+      "rating_right": 4,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 2,
+      "rater": "csx",
+      "ts": "2026-09-25T14:50:13.354Z",
+      "left": "D_random_intent_111",
+      "right": "A_full_55",
+      "rating_left": 1,
+      "rating_right": 3,
+      "forced_choice": "right",
+      "truth": {
+        "left": "D_random_intent_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 3,
+      "rater": "csx",
+      "ts": "2026-09-25T14:50:32.925Z",
+      "left": "B_no_laya_33",
+      "right": "A_full_88",
+      "rating_left": 1,
+      "rating_right": 4,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 4,
+      "rater": "csx",
+      "ts": "2026-09-25T14:50:55.005Z",
+      "left": "A_full_111",
+      "right": "C_no_connectome_11",
+      "rating_left": 5,
+      "rating_right": 1,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome_11"
+      }
+    },
+    {
+      "trial": 5,
+      "rater": "csx",
+      "ts": "2026-09-25T14:51:18.308Z",
+      "left": "B_no_laya_33",
+      "right": "A_full_111",
+      "rating_left": 1,
+      "rating_right": 5,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 6,
+      "rater": "csx",
+      "ts": "2026-09-25T14:51:48.916Z",
+      "left": "C_no_connectome_11",
+      "right": "A_full_88",
+      "rating_left": 1,
+      "rating_right": 3,
+      "forced_choice": "right",
+      "truth": {
+        "left": "C_no_connectome_11",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 7,
+      "rater": "csx",
+      "ts": "2026-09-25T14:52:06.414Z",
+      "left": "B_no_laya_111",
+      "right": "A_full_99",
+      "rating_left": 1,
+      "rating_right": 5,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 8,
+      "rater": "csx",
+      "ts": "2026-09-25T14:52:31.089Z",
+      "left": "A_full_99",
+      "right": "B_no_laya_11",
+      "rating_left": 5,
+      "rating_right": 1,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_11"
+      }
+    },
+    {
+      "trial": 9,
+      "rater": "csx",
+      "ts": "2026-09-25T14:52:46.628Z",
+      "left": "B_no_laya_33",
+      "right": "A_full_11",
+      "rating_left": 2,
+      "rating_right": 4,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 10,
+      "rater": "csx",
+      "ts": "2026-09-25T14:53:05.788Z",
+      "left": "A_full_88",
+      "right": "B_no_laya_22",
+      "rating_left": 3,
+      "rating_right": 1,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_22"
+      }
+    },
+    {
+      "trial": 11,
+      "rater": "csx",
+      "ts": "2026-09-25T14:53:19.148Z",
+      "left": "B_no_laya_22",
+      "right": "A_full_66",
+      "rating_left": 1,
+      "rating_right": 4,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_22",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 12,
+      "rater": "csx",
+      "ts": "2026-09-25T14:53:44.606Z",
+      "left": "B_no_laya_44",
+      "right": "A_full_99",
+      "rating_left": 2,
+      "rating_right": 5,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_44",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 13,
+      "rater": "csx",
+      "ts": "2026-09-25T14:54:01.734Z",
+      "left": "D_random_intent_111",
+      "right": "A_full_111",
+      "rating_left": 1,
+      "rating_right": 3,
+      "forced_choice": "right",
+      "truth": {
+        "left": "D_random_intent_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 14,
+      "rater": "csx",
+      "ts": "2026-09-25T14:54:17.857Z",
+      "left": "B_no_laya_111",
+      "right": "A_full_55",
+      "rating_left": 1,
+      "rating_right": 4,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 15,
+      "rater": "csx",
+      "ts": "2026-09-25T14:54:37.494Z",
+      "left": "B_no_laya_11",
+      "right": "A_full_99",
+      "rating_left": 2,
+      "rating_right": 5,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_11",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 16,
+      "rater": "csx",
+      "ts": "2026-09-25T14:54:47.798Z",
+      "left": "A_full_77",
+      "right": "D_random_intent_11",
+      "rating_left": 5,
+      "rating_right": 2,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "D_random_intent_11"
+      }
+    },
+    {
+      "trial": 17,
+      "rater": "csx",
+      "ts": "2026-09-25T14:54:56.176Z",
+      "left": "A_full_55",
+      "right": "C_no_connectome_111",
+      "rating_left": 4,
+      "rating_right": 1,
+      "forced_choice": "left",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome_111"
+      }
+    },
+    {
+      "trial": 18,
+      "rater": "csx",
+      "ts": "2026-09-25T14:55:12.156Z",
+      "left": "B_no_laya_44",
+      "right": "A_full_55",
+      "rating_left": 1,
+      "rating_right": 5,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_44",
+        "right": "A_full"
+      }
+    },
+    {
+      "trial": 19,
+      "rater": "csx",
+      "ts": "2026-09-25T14:55:40.090Z",
+      "left": "B_no_laya_33",
+      "right": "A_full_22",
+      "rating_left": 2,
+      "rating_right": 3,
+      "forced_choice": "right",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    }
+  ]
+}

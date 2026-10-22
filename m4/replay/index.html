@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>FlyLaya 回放 — trajectory jsonl → webm</title>
+<style>
+  body { margin:0; background:#111; color:#ddd; font-family:-apple-system,"PingFang SC",sans-serif; }
+  header { padding:10px 16px; background:#1d1d1f; border-bottom:1px solid #333; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:15px; margin:0; font-weight:600; }
+  #hud { font-size:12px; color:#9cf; }
+  button, select { background:#2a2a2c; color:#ddd; border:1px solid #444; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  canvas { display:block; }
+  #drop { position:fixed; inset:0; display:grid; place-items:center; background:#111; color:#888; font-size:14px; z-index:9; }
+  #drop.hot { outline:4px dashed #4a7fd4; outline-offset:-16px; color:#9cf; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FlyLaya 回放导出</h1>
+  <input type="file" id="file" accept=".jsonl" multiple>
+  <select id="run"></select>
+  <button id="play">播放</button><button id="pause">暂停</button>
+  <button id="rec" disabled>● 录制 (MediaRecorder)</button>
+  <span id="hud"></span>
+</header>
+<div id="drop">拖入 trajectory .jsonl(可多份,如 A_full_11.jsonl),或用左上选择文件</div>
+<canvas id="cv"></canvas>
+<script type="module">
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+const cv = document.getElementById("cv");
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0d10);
+scene.fog = new THREE.Fog(0x0d0d10, 120, 320);
+const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+
+// arena: 1m^3 -> units of cm, centered at origin
+const HALF = 50;
+{
+  const grid = new THREE.GridHelper(100, 10, 0x333a44, 0x22262c);
+  grid.position.y = -HALF; scene.add(grid);
+  const box = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(100, 100, 100)),
+    new THREE.LineBasicMaterial({ color: 0x4a7fd4, transparent: true, opacity: 0.35 }));
+  scene.add(box);
+}
+const sunArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 30, 0xffd27f, 8, 5);
+scene.add(sunArrow);
+const obstacleMeshes = [];
+const fly = new THREE.Group();
+{
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.0, 3.2, 4, 8),
+    new THREE.MeshStandardMaterial({ color: 0x777788 }));
+  body.rotation.x = Math.PI / 2;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.2, 8),
+    new THREE.MeshStandardMaterial({ color: 0xbb4433 }));
+  nose.rotation.x = -Math.PI / 2; nose.position.z = 2.6;
+  fly.add(body, nose);
+  const light = new THREE.DirectionalLight(0xffffff, 1.1); light.position.set(60, 90, 40);
+  scene.add(light, new THREE.AmbientLight(0x404050, 1.4));
+}
+scene.add(fly);
+let trail = null;
+const INTENT_COLORS = {
+  steer_toward_brightest_direction: 0xffd27f,
+  slow_down_and_turn_away_from_obstacle: 0xff6a4a,
+  cruise_straight_at_medium_speed: 0x6adf8a,
+  hold_position_and_hover_in_place: 0x8a8adf,
+  turn_away_from_the_wall: 0x4a9fe4,
+};
+let trailColors = [];
+
+function resetScene(meta) {
+  obstacleMeshes.forEach(m => scene.remove(m)); obstacleMeshes.length = 0;
+  for (const o of meta.obstacles || []) {
+    const h = o.h, r = o.r;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16),
+      new THREE.MeshStandardMaterial({ color: 0x3a4a55, transparent: true, opacity: 0.75 }));
+    m.position.set(o.x - HALF, h / 2 - HALF, o.y - HALF);
+    scene.add(m); obstacleMeshes.push(m);
+  }
+  const az = (meta.sun?.azimuth_deg ?? 0) * Math.PI / 180, el = (meta.sun?.elevation_deg ?? 45) * Math.PI / 180;
+  sunArrow.setDirection(new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)));
+  sunArrow.position.set(-40 * Math.cos(el) * Math.cos(az), -40 * Math.sin(el) - HALF + 4, -40 * Math.cos(el) * Math.sin(az));
+  if (trail) scene.remove(trail);
+  trail = new THREE.Line(new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }));
+  scene.add(trail);
+  trailColors = [];
+}
+
+const runs = new Map();   // name -> {meta, frames}
+let cur = null, playing = false, idx = 0, raf = null;
+const SPEED = 10;         // frames per second == realtime (10Hz bio frames)
+
+function showFrame(i) {
+  const f = cur.frames[i];
+  const p = new THREE.Vector3(f.pos[0] - HALF, f.pos[2] - HALF, f.pos[1] - HALF);
+  fly.position.copy(p);
+  fly.rotation.set(0, THREE.MathUtils.degToRad(f.yaw), -THREE.MathUtils.degToRad(f.pitch), "YXZ");
+  const c = new THREE.Color(INTENT_COLORS[f.intent] ?? 0xffffff);
+  trailColors.push(c.r, c.g, c.b);
+  const pts = [];
+  for (let k = Math.max(0, i - 1500); k <= i; k++) {
+    const g = cur.frames[k];
+    pts.push(new THREE.Vector3(g.pos[0] - HALF, g.pos[2] - HALF, g.pos[1] - HALF));
+  }
+  const cols = [];
+  for (let k = Math.max(0, i - 1500); k <= i; k++) {
+    const g = cur.frames[k];
+    const cc = new THREE.Color(INTENT_COLORS[g.intent] ?? 0xffffff);
+    cols.push(cc.r, cc.g, cc.b);
+  }
+  trail.geometry.dispose();
+  trail.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+  trail.geometry.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+  // follow camera
+  const dist = 45;
+  cam.position.set(p.x + dist * 0.5, p.y + dist * 0.4 + 12, p.z + dist * 0.8);
+  cam.lookAt(p);
+  document.getElementById("hud").textContent =
+    `${cur.name}  t=${f.t.toFixed(1)}s  intent=${f.intent}  conf=${(f.intent_conf ?? 0).toFixed(2)}  ` +
+    `arousal=${(f.arousal ?? "-")}  speed=${f.speed.toFixed(1)}cm/s  frame ${i + 1}/${cur.frames.length}`;
+}
+
+function resize() {
+  const w = innerWidth - 20, h = innerHeight - 60;
+  renderer.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+let last = 0;
+function loop(ts) {
+  raf = requestAnimationFrame(loop);
+  if (!playing || !cur) return;
+  if (ts - last >= 1000 / SPEED) {
+    last = ts;
+    idx = (idx + 1) % cur.frames.length;
+    showFrame(idx);
+  }
+}
+
+function loadRun(name) {
+  cur = runs.get(name); idx = 0;
+  resetScene(cur.meta);
+  showFrame(0);
+}
+
+async function loadFiles(files) {
+  document.getElementById("drop").style.display = "none";
+  for (const file of files) {
+    const text = await file.text();
+    const lines = text.trim().split("\n").map(l => JSON.parse(l));
+    const meta = lines.find(d => d.type === "meta") ?? {};
+    const frames = lines.filter(d => d.type !== "meta");
+    runs.set(file.name, { name: file.name, meta, frames });
+  }
+  const sel = document.getElementById("run");
+  sel.innerHTML = "";
+  for (const n of runs.keys()) sel.add(new Option(n, n));
+  loadRun(runs.keys().next().value);
+  document.getElementById("rec").disabled = false;
+}
+document.getElementById("file").onchange = e => loadFiles(e.target.files);
+const drop = document.getElementById("drop");
+addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("hot"); });
+addEventListener("dragleave", () => drop.classList.remove("hot"));
+addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("hot"); loadFiles(e.dataTransfer.files); });
+document.getElementById("run").onchange = e => loadRun(e.target.value);
+document.getElementById("play").onclick = () => { playing = true; };
+document.getElementById("pause").onclick = () => { playing = false; };
+
+let recorder = null, recChunks = [];
+document.getElementById("rec").onclick = () => {
+  if (recorder) { recorder.stop(); return; }
+  const stream = cv.captureStream(30);
+  const mime = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "video/webm";
+  recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+  recChunks = [];
+  recorder.ondataavailable = e => recChunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(recChunks, { type: mime });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${cur.name.replace(".jsonl", "")}_replay.${mime.split("/")[1]}`;
+    a.click();
+    recorder = null;
+    document.getElementById("rec").textContent = "● Record (MediaRecorder)";
+    playing = false;
+  };
+  idx = 0; playing = true;
+  recorder.start();
+  document.getElementById("rec").textContent = "■ Stop & Save";
+};
+raf = requestAnimationFrame(loop);
+</script>
+</body>
+</html>

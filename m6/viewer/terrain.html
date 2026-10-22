@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>FlyLaya M6 — 地形观察器</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #87b6ff;
+    font-family: "Courier New", ui-monospace, monospace; }
+  canvas#gl { display: block; width: 100%; height: 100%; }
+  .hud { position: absolute; color: #fff; text-shadow: 2px 2px 0 #000c;
+    font-size: 13px; line-height: 1.5; user-select: none; }
+  .panel { background: rgba(16, 12, 8, 0.72); border: 3px solid #000;
+    box-shadow: inset 0 0 0 2px #5a5a5a; 0 4px 0 #0006; padding: 8px 10px; }
+  #info { top: 10px; left: 10px; width: 250px; }
+  #right { top: 10px; right: 10px; width: 200px; }
+  #minimapWrap { position: absolute; right: 10px; top: 250px; }
+  #minimap { border: 3px solid #000; display: block; background: #111; }
+  #ctrl { bottom: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; align-items: center; pointer-events: auto; flex-wrap: wrap; }
+  button, select, input { pointer-events: auto; font: inherit; }
+  button { background: #6f6f6f; color: #fff; border: 2px solid #000;
+    box-shadow: inset -2px -2px 0 #4a4a4a, inset 2px 2px 0 #9a9a9a;
+    padding: 3px 10px; cursor: pointer; }
+  button.active { background: #4a7fb5; box-shadow: inset 2px 2px 0 #2d517a; }
+  button:disabled { opacity: .45; cursor: default; }
+  #tlwrap { position: absolute; left: 10px; right: 240px; bottom: 58px; pointer-events: auto; }
+  #timeline { width: 100%; height: 18px; display: block; cursor: crosshair;
+    border: 2px solid #000; background: #111; }
+  .dim { color: #aaa; }
+  .intent-big { font-size: 16px; font-weight: bold; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://unpkg.com/three@0.169.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div class="hud panel" id="info">
+  <div class="row" style="display:flex;justify-content:space-between"><b id="map">—</b><span class="dim" id="t">0s</span></div>
+  <div class="dim" id="meta1">—</div>
+  <div>pos <span id="pos">—</span> m · <span id="speed">—</span> m/s</div>
+  <div>yaw <span id="yaw">—</span>° · alt <span id="z">—</span> m · 地形 <span id="th">—</span> m</div>
+</div>
+
+<div class="hud panel" id="right">
+  <div class="row" style="display:flex;justify-content:space-between"><b>意图</b><span class="dim" id="src">—</span></div>
+  <div class="intent-big" id="intent">—</div>
+  <div class="dim" style="margin-top:4px">DN 读出</div><div id="dn"></div>
+</div>
+
+<div id="minimapWrap"><canvas id="minimap" width="180" height="180"></canvas></div>
+<div id="tlwrap"><canvas id="timeline"></canvas></div>
+<div class="hud panel" id="ctrl">
+  <select id="mapSel" title="地图"></select>
+  <select id="runSel" title="run"><option value="">(无 run)</option></select>
+  <button id="play">⏸</button>
+  <label>速度 <input id="spd" type="range" min="0.25" max="8" step="0.25" value="1">
+    <span id="spdv">1×</span></label>
+  <button id="viewBtn">侧视</button>
+  <button id="demoBtn">▶ DEMO 探索</button>
+  <button id="liveBtn">⚡ LIVE</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const $ = id => document.getElementById(id);
+const ICOLOR = { phototaxis:"#ffd27f", avoid_obstacle:"#ff6a4a", explore:"#6adf8a",
+                 center_in_arena:"#4a9fe4", rest_hover:"#8a8adf" };
+
+/* ---------- three 基础 ---------- */
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87b6ff);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 600);
+camera.position.set(40, 25, -45);
+const controls = { target: new THREE.Vector3(32, 3, 32) };
+const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x5a7f4a, 1.0); scene.add(hemi);
+const sunLight = new THREE.DirectionalLight(0xfff2cc, 1.1);
+scene.add(sunLight, sunLight.target);
+
+const rndT = (a, b) => a + Math.random() * (b - a);
+function speckTex(base, vary) {
+  const c = document.createElement('canvas'); c.width = c.height = 8;
+  const g = c.getContext('2d');
+  const b = [1, 3, 5].map(i => parseInt(base.slice(i, i + 2), 16));
+  g.fillStyle = base; g.fillRect(0, 0, 8, 8);
+  for (let i = 0; i < 400; i++) { const v = rndT(-1, 1);
+    g.fillStyle = `rgb(${b.map((cc, j) => Math.round(Math.max(0, Math.min(255, cc + v * vary[j])))).join(',')})`;
+    g.fillRect(rndT(0, 8) | 0, rndT(0, 8) | 0, 1, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const MAT = {
+  grass: new THREE.MeshLambertMaterial({ map: speckTex('#5d9b3f', [30, 44, 22]) }),
+  stone: new THREE.MeshLambertMaterial({ map: speckTex('#8a8a8a', [22, 22, 22]) }),
+  snow:  new THREE.MeshLambertMaterial({ map: speckTex('#e8eef2', [12, 12, 12]) }),
+  sand:  new THREE.MeshLambertMaterial({ map: speckTex('#c9b276', [24, 20, 10]) }),
+  wood:  new THREE.MeshLambertMaterial({ color: 0x6b4a2a }),
+  leaf:  new THREE.MeshLambertMaterial({ color: 0x2f7a2f }),
+  water: new THREE.MeshLambertMaterial({ color: 0x3f6fd8, transparent: true, opacity: 0.6 }),
+};
+
+/* ---------- 确定性 PRNG + 地形 (spec -> heightmap/trees) ---------- */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => { a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+let TER = null;   // {spec, H(x,z), size, trees[], cols, rows, block}
+function buildTerrain(spec) {
+  const [SX, SZ] = spec.size_m, B = spec.block_m || 0.5;
+  const cols = Math.round(SX / B), rows = Math.round(SZ / B);
+  const hills = spec.hills || [];
+  const waterLvl = spec.water_level_m ?? 1.0;
+  const waterR = spec.water_regions || [];
+  const H = (x, z) => {
+    let h = 0;
+    for (const m of hills) {
+      const dx = x - m.cx_m, dz = z - m.cz_m, d2 = (dx * dx + dz * dz) / (m.r_m * m.r_m);
+      h += m.h_m * Math.exp(-d2 * 2);
+    }
+    for (const w2 of waterR) {
+      const d = Math.hypot(x - w2.cx_m, z - w2.cz_m);
+      h -= (w2.r_m - d) > 0 ? 1.8 * (w2.r_m - d) / w2.r_m : 0;
+    }
+    return Math.max(0, h);
+  };
+  // trees: seeded placement on grass, above water, moderate slope
+  const rng = mulberry32((spec.seed || 1) ^ 0x5f3759df);
+  const tSpec = spec.trees || { count: 40 };
+  const trees = [];
+  let guard = 0;
+  while (trees.length < (tSpec.count || 40) && guard++ < 4000) {
+    const x = rng() * SX, z = rng() * SZ;
+    const h = H(x, z);
+    if (h < (tSpec.min_h_m ?? 1.5) || h > 6) continue;
+    const slope = Math.max(Math.abs(H(x + 1, z) - h), Math.abs(H(x, z + 1) - h));
+    if (slope > 1.2) continue;
+    if (waterR.some(w2 => Math.hypot(x - w2.cx_m, z - w2.cz_m) < w2.r_m + (tSpec.avoid_water_r_m ?? 3))) continue;
+    if (trees.some(t2 => Math.hypot(t2.x - x, t2.z - z) < 2.5)) continue;
+    trees.push({ x, z, h, th: 2 + rng() * 1.5 });
+  }
+  return { spec, H, size: [SX, SZ], trees, cols, rows, block: B, waterLvl, waterR };
+}
+
+/* ---------- 世界构建 (InstancedMesh) ---------- */
+let world = null, flyG = null, trail = null, F = null;
+const TRAIL_N = 400;
+const _m = new THREE.Matrix4();
+function buildWorld(T) {
+  if (world) { scene.remove(world); world.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  world = new THREE.Group(); scene.add(world);
+  const B = T.block, SX = T.size[0], SZ = T.size[1];
+  // 地形列: 分材质分组(草/石/雪/沙) — 顶块 + 每列只渲染顶部 2 块 + 基座
+  const buckets = { grass: [], stone: [], snow: [], sand: [] };
+  for (let i = 0; i < T.cols; i++) for (let j = 0; j < T.rows; j++) {
+    const x = (i + 0.5) * B, z = (j + 0.5) * B;
+    const h = T.H(x, z);
+    const inWater = T.waterR.some(w2 => Math.hypot(x - w2.cx_m, z - w2.cz_m) < w2.r_m);
+    const top = Math.max(Math.round(h / B) * B, inWater ? Math.round((T.waterLvl - 0.3) / B) * B : 0);
+    const kind = h < 0.6 && inWater ? 'sand' : (h < 2.2 ? 'grass' : (h < 6 ? 'stone' : 'snow'));
+    buckets[kind].push([x, top - B / 2, z]);
+    buckets[kind].push([x, top - 1.5 * B, z]);  // 侧向深度感
+  }
+  for (const [kind, list] of Object.entries(buckets)) {
+    if (!list.length) continue;
+    const im = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(B, B, B), MAT[kind], list.length);
+    list.forEach((p, i) => { _m.setPosition(...p); im.setMatrixAt(i, _m); });
+    world.add(im);
+  }
+  // 水面
+  for (const w2 of T.waterR) {
+    const wm = new THREE.Mesh(new THREE.CylinderGeometry(w2.r_m, w2.r_m, 0.3, 24), MAT.water);
+    wm.position.set(w2.cx_m, T.waterLvl, w2.cz_m);
+    world.add(wm);
+  }
+  // 树
+  for (const t2 of T.trees) {
+    const g2 = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.4, t2.th, 0.4), MAT.wood);
+    trunk.position.y = t2.th / 2;
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 1.6), MAT.leaf);
+    crown.position.y = t2.th + 0.7;
+    g2.add(trunk, crown);
+    g2.position.set(t2.x, t2.h, t2.z);
+    world.add(g2);
+  }
+  // 太阳
+  const S = T.spec.sun || {};
+  const az = (S.azimuth_deg ?? 135) * Math.PI / 180, el = (S.elevation_deg ?? 45) * Math.PI / 180;
+  const u = [Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)];
+  const sun = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a }));
+  sun.position.set(SX / 2 + u[0] * 55, u[1] * 50 + 5, SZ / 2 + u[2] * 55);
+  world.add(sun);
+  sunLight.position.set(SX / 2 + u[0] * 100, u[1] * 100, SZ / 2 + u[2] * 100);
+  sunLight.target.position.set(SX / 2, 0, SZ / 2);
+  scene.fog = new THREE.Fog(0x87b6ff, (T.spec.sky?.fog_near_m ?? 60), (T.spec.sky?.fog_far_m ?? 150));
+  // 果蝇 (世界放大, 蝇也放大到 ~40cm 级)
+  const SCL = 8;
+  flyG = new THREE.Group();
+  const ds = o => new THREE.MeshLambertMaterial(o);
+  const body = ds({ color: 0x3a2b1e }), dark = ds({ color: 0x241a12 }), eye = ds({ color: 0xb02020 });
+  const add = (g3, m3, x, y, z) => { const e = new THREE.Mesh(g3, m3); e.position.set(x, y, z); flyG.add(e); return e; };
+  add(new THREE.BoxGeometry(4.2, 3.0, 3.2), body, 0, 0, 0);
+  add(new THREE.BoxGeometry(3.4, 2.6, 2.8), dark, -3.6, -0.2, 0);
+  add(new THREE.BoxGeometry(2.2, 2.2, 2.2), body, 3.0, 0, 0);
+  add(new THREE.BoxGeometry(1.8, 1.8, 1.8), eye, 3.4, 0.2, 1.2);
+  add(new THREE.BoxGeometry(1.8, 1.8, 1.8), eye, 3.4, 0.2, -1.2);
+  const wingGeo = new THREE.BoxGeometry(1.2, 0.18, 5.2); wingGeo.translate(0, 0, 2.6);
+  const wmat = ds({ color: 0xdfe8ff, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+  const wL = add(wingGeo, wmat, -0.4, 1.8, 0.6), wR = add(wingGeo, wmat, -0.4, 1.8, -0.6);
+  const tagC = document.createElement('canvas'); tagC.width = 256; tagC.height = 48;
+  const tagT = new THREE.CanvasTexture(tagC); tagT.magFilter = THREE.NearestFilter;
+  const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagT, depthTest: false }));
+  tag.scale.set(10, 1.9, 1); tag.position.y = 4.5; flyG.add(tag);
+  flyG.scale.setScalar(SCL * 0.14);
+  world.add(flyG);
+  trail = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }), TRAIL_N);
+  trail.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  world.add(trail);
+  F = { wL, wR, tagC, tagT };
+}
+const _m4 = new THREE.Matrix4(); const _c = new THREE.Color();
+const trailPos = [];
+
+/* ---------- 数据/播放 ---------- */
+let run = null, fi = 0, playing = true, speed = 1;
+const HZ = 10;
+function frameAt(i) {
+  const fr = run.frames, n = fr.length;
+  const i0 = Math.max(0, Math.min(n - 1, i | 0)), t = i - i0, i1 = Math.min(n - 1, i0 + 1);
+  const a = fr[i0], b = fr[i1];
+  const la = (x, y) => { let d = ((y - x + 540) % 360) - 180; return x + d * t; };
+  return { x: a.pos_m[0] + (b.pos_m[0] - a.pos_m[0]) * t,
+           y: a.pos_m[1] + (b.pos_m[1] - a.pos_m[1]) * t,
+           z: a.pos_m[2] + (b.pos_m[2] - a.pos_m[2]) * t,
+           yaw: la(a.yaw_deg, b.yaw_deg), speed: a.speed_m_s,
+           intent: a.intent_applied || a.intent, arousal: a.arousal,
+           dn: a.dn || {}, t: a.t_s };
+}
+
+/* ---------- HUD ---------- */
+const dnEl = $('dn'), dnRows = {};
+function ensureDn(keys) {
+  for (const k of keys) {
+    if (dnRows[k]) continue;
+    const d = document.createElement('div');
+    d.innerHTML = `<div style="display:flex;justify-content:space-between"><span class="dim" style="width:78px">${k}</span><span id="dnv-${k}">—</span></div>
+      <div style="height:7px;background:#222;border:2px solid #000;margin:1px 0 4px"><div id="dnb-${k}" style="height:100%;background:#ffb87f;width:0"></div></div>`;
+    dnEl.appendChild(d); dnRows[k] = d;
+  }
+}
+let hudTick = 0;
+function updateHUD(force) {
+  if (!run || !run.frames.length) return;
+  const s = frameAt(fi);
+  flyG.position.set(s.x, s.z, s.y);
+  flyG.rotation.order = 'YZX';
+  flyG.rotation.y = -s.yaw * Math.PI / 180;
+  const flap = Math.sin(performance.now() * 0.045) * (0.55 + Math.min(s.speed * 3, 1.2));
+  F.wL.rotation.x = 0.5 + flap; F.wR.rotation.x = -0.5 - flap;
+  if (hudTick % 2 === 0) {
+    trailPos.push([s.x, s.z, s.y, ICOLOR[s.intent] || '#88aaff']);
+    if (trailPos.length > TRAIL_N) trailPos.shift();
+    trail.count = trailPos.length;
+    trailPos.forEach((p, i) => { const kk = 1 - i / TRAIL_N * 0.6;
+      _m4.makeScale(kk, kk, kk); _m4.setPosition(p[0], p[1], p[2]);
+      trail.setMatrixAt(i, _m4); trail.setColorAt(i, _c.set(p[3])); });
+    trail.instanceMatrix.needsUpdate = true;
+    if (trail.instanceColor) trail.instanceColor.needsUpdate = true;
+  }
+  if (hudTick % 4 === 0 || force) {
+    const g2 = F.tagC.getContext('2d');
+    g2.fillStyle = 'rgba(0,0,0,0.55)'; g2.fillRect(0, 0, 256, 48);
+    g2.font = 'bold 24px monospace'; g2.textAlign = 'center';
+    g2.fillStyle = ICOLOR[s.intent] || '#fff';
+    g2.fillText(s.intent || '—', 128, 33); F.tagT.needsUpdate = true;
+    $('t').textContent = s.t.toFixed(1) + 's / ' + (run.frames.at(-1)?.t_s ?? '?') + 's';
+    $('pos').textContent = `${s.x.toFixed(1)},${s.y.toFixed(1)},${s.z.toFixed(1)}`;
+    $('speed').textContent = s.speed?.toFixed(2) ?? '—';
+    $('yaw').textContent = ((s.yaw % 360 + 360) % 360).toFixed(0);
+    $('z').textContent = s.z.toFixed(2);
+    $('th').textContent = TER ? TER.H(s.x, s.y).toFixed(2) : '—';
+    $('intent').textContent = s.intent || '—';
+    $('intent').style.color = ICOLOR[s.intent] || '#fff';
+    ensureDn(Object.keys(s.dn));
+    for (const [k, v] of Object.entries(s.dn)) {
+      const r = dnRows[k]; if (!r) continue;
+      r.querySelector(`#dnv-${k}`).textContent = (+v).toFixed(1);
+      r.querySelector(`#dnb-${k}`).style.width = Math.min(100, Math.abs(v) / 30 * 100) + '%';
+    }
+    drawMinimap(s); drawTimeline();
+  }
+  hudTick++;
+}
+const mmCtx = $('minimap').getContext('2d');
+function drawMinimap(s) {
+  const g = mmCtx, W = 180, T = TER; if (!T) return;
+  const sx = W / T.cols, sy = W / T.rows;
+  if (!drawMinimap._base) {
+    const c = document.createElement('canvas'); c.width = c.height = W;
+    const g2 = c.getContext('2d');
+    for (let i = 0; i < T.cols; i++) for (let j = 0; j < T.rows; j++) {
+      const h = T.H((i + 0.5) * T.block, (j + 0.5) * T.block);
+      const inW = T.waterR.some(w2 => Math.hypot((i + .5) * T.block - w2.cx_m, (j + .5) * T.block - w2.cz_m) < w2.r_m);
+      g2.fillStyle = inW && h < T.waterLvl ? '#3f6fd8'
+        : `hsl(${100 - Math.min(h, 8) * 10}, 45%, ${30 + Math.min(h, 8) * 6}%)`;
+      g2.fillRect(i * sx, j * sy, sx + 1, sy + 1);
+    }
+    for (const t2 of T.trees) { g2.fillStyle = '#1d4d1d'; g2.fillRect(t2.x / T.size[0] * W - 1, t2.z / T.size[1] * W - 1, 2, 2); }
+    drawMinimap._base = c;
+  }
+  g.clearRect(0, 0, W, W);
+  g.drawImage(drawMinimap._base, 0, 0);
+  for (const p of trailPos) {
+    g.fillStyle = p[3]; g.globalAlpha = 0.5;
+    g.fillRect(p[0] / T.size[0] * W - 1, p[2] / T.size[1] * W - 1, 2, 2);
+  }
+  g.globalAlpha = 1;
+  g.fillStyle = '#fff'; g.fillRect(s.x / T.size[0] * W - 2, s.y / T.size[1] * W - 2, 5, 5);
+  g.strokeStyle = '#000'; g.strokeRect(s.x / T.size[0] * W - 2.5, s.y / T.size[1] * W - 2.5, 6, 6);
+}
+const tlCtx = $('timeline').getContext('2d');
+function drawTimeline() {
+  const c = $('timeline'), g = tlCtx, W = c.width = c.clientWidth || 900, H2 = c.height = 18;
+  const n = run.frames.length;
+  for (let i = 0; i < W; i++) {
+    const f = run.frames[Math.min(n - 1, i / W * n | 0)];
+    g.fillStyle = ICOLOR[f.intent_applied || f.intent] || '#555';
+    g.fillRect(i, 0, 1, H2);
+  }
+  g.fillStyle = '#fff'; g.fillRect(fi / n * W - 1, 0, 2, H2);
+}
+function loadRun(data, label) {
+  run = { frames: data.frames, meta: data.meta, label };
+  TER = buildTerrain(data.spec || TER?.spec);
+  buildWorld(TER);
+  trailPos.length = 0; drawMinimap._base = null;
+  fi = 0; playing = true; $('play').textContent = '⏸';
+  $('map').textContent = (data.spec?.map_id || label || '—');
+  $('meta1').textContent = label || '';
+  $('src').textContent = data.meta?.state_source || '';
+  updateHUD(true);
+}
+async function fetchRun(dir) {
+  const r = await fetch('/api/run?dir=' + encodeURIComponent(dir));
+  if (!r.ok) throw new Error(await r.text());
+  loadRun(await r.json(), dir);
+}
+
+/* ---------- DEMO 探索 (客户端确定性走查, 非仿真数据) ---------- */
+let demoTimer = null;
+function startDemo() {
+  stopDemo();
+  run = { frames: [], meta: { demo: true, state_source: 'demo' }, label: 'DEMO 探索(非仿真)' };
+  const rng = mulberry32(Date.now() & 0xffff);
+  let x = 8, z = TER.H(8, 8) + 1.2, y = 8, yaw = rng() * 360, t = 0;
+  const push = () => {
+    t += 0.1;
+    yaw += (rng() - 0.5) * 24;
+    const v = 0.5 + rng() * 0.4;
+    x += Math.cos(yaw * Math.PI / 180) * v * 0.1;
+    y += Math.sin(yaw * Math.PI / 180) * v * 0.1;
+    x = Math.max(1, Math.min(TER.size[0] - 1, x));
+    y = Math.max(1, Math.min(TER.size[1] - 1, y));
+    const gh = TER.H(x, y);
+    z += ((gh + 1.4 + Math.sin(t * 0.4) * 0.3) - z) * 0.15;
+    run.frames.push({ t_s: +t.toFixed(1), pos_m: [+x.toFixed(2), +y.toFixed(2), +z.toFixed(2)],
+      yaw_deg: +yaw.toFixed(1), speed_m_s: +v.toFixed(2),
+      intent_applied: ['explore', 'explore', 'phototaxis', 'avoid_obstacle'][(t / 3 | 0) % 4],
+      arousal: 1.0, dn: { DNp20_L: 12 + 8 * Math.sin(t), DNp20_R: 12 + 8 * Math.cos(t * 0.7), MDN_L: 3, MDN_R: 3.4 } });
+    fi = run.frames.length - 1;
+    updateHUD(false);
+    $('t').textContent = t.toFixed(1) + 's';
+    $('meta1').textContent = 'DEMO 确定性走查 · 非仿真数据';
+  };
+  for (let i = 0; i < 5; i++) push();
+  demoTimer = setInterval(push, 100);
+  toast('DEMO 探索运行中(客户端演示,非 W1 仿真)');
+}
+function stopDemo() { if (demoTimer) { clearInterval(demoTimer); demoTimer = null; } }
+function toast(msg, ms = 2600) {
+  let el = $('toast2');
+  if (!el) { el = document.createElement('div'); el.id = 'toast2';
+    el.className = 'hud panel'; el.style.cssText = 'top:64px;left:50%;transform:translateX(-50%)';
+    document.body.appendChild(el); }
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(el._h); el._h = setTimeout(() => el.style.display = 'none', ms);
+}
+
+/* ---------- LIVE (W1 runner 就绪时; 否则提示) ---------- */
+async function goLive() {
+  const r = await fetch('/api/live?scene=' + $('mapSel').value + '&seconds=20', { method: 'GET' });
+  if (r.status === 501) { toast('W1 runner 未就绪(m6/runner.py 缺失); 用 DEMO 探索先看世界'); return; }
+  toast('LIVE 启动…');
+  run = { frames: [], meta: {}, label: 'LIVE' };
+  const reader = r.body.getReader(); const dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const d = JSON.parse(line);
+      if (d._done) { toast(d.returncode === 0 ? '完成 ✓ ' + d.run_dir : '失败: ' + (d.log_tail || '').slice(-140), 5000); continue; }
+      if (d.type === 'meta') { run.meta = d; continue; }
+      run.frames.push(d); fi = run.frames.length - 1; updateHUD(false);
+    }
+  }
+  fi = 0; playing = true; trailPos.length = 0; updateHUD(true);
+}
+
+/* ---------- 控件 ---------- */
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? '⏸' : '▶'; };
+$('spd').oninput = e => { speed = +e.target.value; $('spdv').textContent = speed + '×'; };
+let view = 'side';
+$('viewBtn').onclick = () => {
+  view = view === 'side' ? 'top' : (view === 'top' ? 'chase' : 'side');
+  $('viewBtn').textContent = view === 'side' ? '侧视' : (view === 'top' ? '俯视' : '跟随');
+};
+$('demoBtn').onclick = () => { stopDemo(); startDemo(); };
+$('liveBtn').onclick = () => { stopDemo(); goLive(); };
+$('runSel').onchange = () => { if ($('runSel').value) { stopDemo(); fetchRun($('runSel').value).catch(e => toast(e.message)); } };
+$('runSel').onfocus = async () => {  // 新 run 落盘后无需刷新页面
+  const runs = await (await fetch('/api/runs')).json();
+  const cur = $('runSel').value;
+  $('runSel').innerHTML = '<option value="">(无 run)</option>' +
+    runs.map(r => `<option value="${r.rel}">${r.root}/${r.rel.split('/').slice(1).join('/')}</option>`).join('');
+  if ([...$('runSel').options].some(o => o.value === cur)) $('runSel').value = cur;
+};
+$('mapSel').onchange = async () => {
+  const spec = await (await fetch('/api/map?id=' + $('mapSel').value)).json();
+  TER = buildTerrain(spec); buildWorld(TER);
+  trailPos.length = 0; drawMinimap._base = null; run = null;
+  $('map').textContent = spec.map_id;
+};
+$('tlwrap').addEventListener('pointerdown', e => {
+  if (!run || demoTimer) return;
+  const r = $('timeline').getBoundingClientRect();
+  fi = Math.max(0, Math.min(run.frames.length - 1, (e.clientX - r.left) / r.width * run.frames.length));
+  trailPos.length = 0; updateHUD(true);
+});
+{
+  const canvas = $('gl'); let drag = null;
+  canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!drag) return;
+    const off = camera.position.clone().sub(controls.target);
+    const sph = new THREE.Spherical().setFromVector3(off);
+    sph.theta -= (e.clientX - drag[0]) * 0.005;
+    sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi - (e.clientY - drag[1]) * 0.005));
+    camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+    drag = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', () => drag = null);
+  canvas.addEventListener('wheel', e => { e.preventDefault();
+    const off = camera.position.clone().sub(controls.target)
+      .multiplyScalar(Math.max(0.85, Math.min(1.18, 1 + Math.sign(e.deltaY) * 0.08)));
+    if (off.length() > 2 && off.length() < 300) camera.position.copy(controls.target).add(off); }, { passive: false });
+}
+
+/* ---------- 主循环 ---------- */
+const clock = new THREE.Clock();
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (!demoTimer && playing && run && run.frames.length) {
+    fi += dt * HZ * speed;
+    if (fi >= run.frames.length - 1) { fi = run.frames.length - 1; playing = false; $('play').textContent = '▶'; }
+    updateHUD(false);
+  }
+  if (run && flyG) {
+    controls.target.lerp(flyG.position, 0.08);
+    if (view === 'chase') {
+      const s = frameAt(fi); const yr = s.yaw * Math.PI / 180;
+      camera.position.lerp(new THREE.Vector3(s.x - 6 * Math.cos(yr), s.z + 2.5, s.y + 6 * Math.sin(yr)), 0.1);
+    }
+  }
+  camera.lookAt(controls.target);
+  renderer.render(scene, camera);
+});
+
+/* ---------- 启动 ---------- */
+(async () => {
+  const maps = await (await fetch('/api/maps')).json();
+  $('mapSel').innerHTML = maps.map(m => `<option>${m.id}</option>`).join('');
+  const runs = await (await fetch('/api/runs')).json();
+  $('runSel').innerHTML = '<option value="">(无 run)</option>' +
+    runs.map(r => `<option value="${r.rel}">${r.root}/${r.rel.split('/').slice(1).join('/')}</option>`).join('');
+  const spec = await (await fetch('/api/map?id=' + maps[0].id)).json();
+  TER = buildTerrain(spec);
+  buildWorld(TER);
+  $('map').textContent = spec.map_id;
+  startDemo();   // 世界先看起来是活的; 有真实 run 时选择即切
+})();
+</script>
+</body>
+</html>

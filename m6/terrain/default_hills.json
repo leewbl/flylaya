@@ -1,0 +1,19 @@
+{
+  "schema_version": "flylaya.m6.terrain.v1",
+  "map_id": "default_hills",
+  "version": 1,
+  "size_m": [64, 64],
+  "block_m": 0.5,
+  "seed": 20260926,
+  "hills": [
+    {"cx_m": 18, "cz_m": 22, "r_m": 14, "h_m": 7.5},
+    {"cx_m": 46, "cz_m": 40, "r_m": 18, "h_m": 10.5},
+    {"cx_m": 52, "cz_m": 12, "r_m": 8, "h_m": 4.0},
+    {"cx_m": 10, "cz_m": 50, "r_m": 10, "h_m": 5.0}
+  ],
+  "water_level_m": 1.2,
+  "water_regions": [{"cx_m": 32, "cz_m": 30, "r_m": 7}],
+  "trees": {"count": 60, "min_h_m": 1.5, "avoid_water_r_m": 4},
+  "sun": {"azimuth_deg": 135, "elevation_deg": 45, "intensity": 0.95},
+  "sky": {"fog_near_m": 60, "fog_far_m": 140}
+}

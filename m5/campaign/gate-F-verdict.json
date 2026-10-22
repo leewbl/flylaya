@@ -1,0 +1,33 @@
+{
+ "gate": "F",
+ "criteria_version": "v2 (pre-registered readings A/B, researcher Gate-F ruling 2026-09-26)",
+ "checked_at": "2026-09-25T23:46:58",
+ "F1_light_readout": {
+  "mean_cos": {
+   "S1_light_left": 0.5463618737577562,
+   "S1_light_right": 0.628449812119941,
+   "S2_obstacle_left": null,
+   "S2_obstacle_right": null
+  },
+  "pass": true,
+  "criteria": "both mirrors >= +0.3, |L-R| <= 0.2"
+ },
+ "F2_looming_sign": {
+  "correct_away": {
+   "S1_light_left": null,
+   "S1_light_right": null,
+   "S2_obstacle_left": 0.6666666666666666,
+   "S2_obstacle_right": 1.0
+  },
+  "pass": true,
+  "criteria": "reading A: left >= 0.5 AND right >= 0.8 (right saturation not degraded)"
+ },
+ "F3_guardrails": {
+  "omega_p50_dps": 107.54000000000516,
+  "omega_source": "guard pair",
+  "arousal_r_median": null,
+  "pass": true
+ },
+ "PASS": true,
+ "note": "exploration seeds 1-5 only; sealed set untouched"
+}

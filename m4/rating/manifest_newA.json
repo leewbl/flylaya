@@ -1,0 +1,166 @@
+{
+  "experiment": "FlyLaya M4 blind rating (plan section 4, criterion 2)",
+  "n_trials": 20,
+  "trials": [
+    {
+      "left": "../runs_iter1params/A_full_77.jsonl",
+      "right": "../runs_iter1params/D_random_intent_77.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "D_random_intent"
+      }
+    },
+    {
+      "left": "../runs_iter1params/C_no_connectome_66.jsonl",
+      "right": "../runs_iter1params/A_full_77.jsonl",
+      "truth": {
+        "left": "C_no_connectome",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_22.jsonl",
+      "right": "../runs_iter1params/D_random_intent_55.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "D_random_intent"
+      }
+    },
+    {
+      "left": "../runs_iter1params/D_random_intent_55.jsonl",
+      "right": "../runs_iter1params/A_full_99.jsonl",
+      "truth": {
+        "left": "D_random_intent",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_111.jsonl",
+      "right": "../runs_iter1params/C_no_connectome_44.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome"
+      }
+    },
+    {
+      "left": "../runs_iter1params/B_no_laya_22.jsonl",
+      "right": "../runs_iter1params/A_full_22.jsonl",
+      "truth": {
+        "left": "B_no_laya",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_99.jsonl",
+      "right": "../runs_iter1params/C_no_connectome_22.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome"
+      }
+    },
+    {
+      "left": "../runs_iter1params/D_random_intent_11.jsonl",
+      "right": "../runs_iter1params/A_full_99.jsonl",
+      "truth": {
+        "left": "D_random_intent",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/B_no_laya_11.jsonl",
+      "right": "../runs_iter1params/A_full_99.jsonl",
+      "truth": {
+        "left": "B_no_laya",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/B_no_laya_111.jsonl",
+      "right": "../runs_iter1params/A_full_11.jsonl",
+      "truth": {
+        "left": "B_no_laya",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/C_no_connectome_99.jsonl",
+      "right": "../runs_iter1params/A_full_33.jsonl",
+      "truth": {
+        "left": "C_no_connectome",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_77.jsonl",
+      "right": "../runs_iter1params/C_no_connectome_11.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome"
+      }
+    },
+    {
+      "left": "../runs_iter1params/D_random_intent_66.jsonl",
+      "right": "../runs_iter1params/A_full_99.jsonl",
+      "truth": {
+        "left": "D_random_intent",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_88.jsonl",
+      "right": "../runs_iter1params/B_no_laya_77.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya"
+      }
+    },
+    {
+      "left": "../runs_iter1params/B_no_laya_11.jsonl",
+      "right": "../runs_iter1params/A_full_77.jsonl",
+      "truth": {
+        "left": "B_no_laya",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/A_full_77.jsonl",
+      "right": "../runs_iter1params/D_random_intent_11.jsonl",
+      "truth": {
+        "left": "A_full",
+        "right": "D_random_intent"
+      }
+    },
+    {
+      "left": "../runs_iter1params/C_no_connectome_77.jsonl",
+      "right": "../runs_iter1params/A_full_66.jsonl",
+      "truth": {
+        "left": "C_no_connectome",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/C_no_connectome_11.jsonl",
+      "right": "../runs_iter1params/A_full_44.jsonl",
+      "truth": {
+        "left": "C_no_connectome",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/B_no_laya_99.jsonl",
+      "right": "../runs_iter1params/A_full_88.jsonl",
+      "truth": {
+        "left": "B_no_laya",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../runs_iter1params/C_no_connectome_88.jsonl",
+      "right": "../runs_iter1params/A_full_111.jsonl",
+      "truth": {
+        "left": "C_no_connectome",
+        "right": "A_full"
+      }
+    }
+  ]
+}

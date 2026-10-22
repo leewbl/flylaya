@@ -1,0 +1,24 @@
+{
+  "schema_version": "flylaya.scene.v1",
+  "scene_id": "S4_mixed_holdout",
+  "version": 1,
+  "arena_m": [1.0, 1.0, 1.0],
+  "duration_s": 300,
+  "decision_dt_s": 0.3,
+  "neural_dt_s": 0.1,
+  "start": {"position_m": [0.18, 0.18, 0.5], "yaw_deg": 45, "speed_m_s": 0.12},
+  "light": {"mode": "directional", "azimuth_deg": 200.0, "elevation_deg": 40.0,
+            "intensity": 0.8, "initially_on": true},
+  "obstacles": [
+    {"id": "o1", "shape": "cylinder", "center_xy_m": [0.42, 0.62],
+     "radius_m": 0.045, "height_m": 0.7, "enabled": true},
+    {"id": "o2", "shape": "cylinder", "center_xy_m": [0.68, 0.35],
+     "radius_m": 0.035, "height_m": 0.5, "enabled": true}
+  ],
+  "events": [],
+  "mirror_axis": "x",
+  "random_streams": ["scene", "controller", "neural", "motor"],
+  "windows": [
+    {"name": "observe", "t_s": [0.0, 300.0]}
+  ]
+}

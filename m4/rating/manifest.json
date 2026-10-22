@@ -1,0 +1,166 @@
+{
+  "experiment": "FlyLaya M4 blind rating (plan section 4, criterion 2)",
+  "n_trials": 20,
+  "trials": [
+    {
+      "left": "../replays/A_full_55_replay.mp4",
+      "right": "../replays/B_no_laya_22_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_22"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_111_replay.mp4",
+      "right": "../replays/A_full_11_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/D_random_intent_111_replay.mp4",
+      "right": "../replays/A_full_55_replay.mp4",
+      "truth": {
+        "left": "D_random_intent_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_33_replay.mp4",
+      "right": "../replays/A_full_88_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/A_full_111_replay.mp4",
+      "right": "../replays/C_no_connectome_11_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome_11"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_33_replay.mp4",
+      "right": "../replays/A_full_111_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/C_no_connectome_11_replay.mp4",
+      "right": "../replays/A_full_88_replay.mp4",
+      "truth": {
+        "left": "C_no_connectome_11",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_111_replay.mp4",
+      "right": "../replays/A_full_99_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/A_full_99_replay.mp4",
+      "right": "../replays/B_no_laya_11_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_11"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_33_replay.mp4",
+      "right": "../replays/A_full_11_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/A_full_88_replay.mp4",
+      "right": "../replays/B_no_laya_22_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "B_no_laya_22"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_22_replay.mp4",
+      "right": "../replays/A_full_66_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_22",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_44_replay.mp4",
+      "right": "../replays/A_full_99_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_44",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/D_random_intent_111_replay.mp4",
+      "right": "../replays/A_full_111_replay.mp4",
+      "truth": {
+        "left": "D_random_intent_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_111_replay.mp4",
+      "right": "../replays/A_full_55_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_111",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_11_replay.mp4",
+      "right": "../replays/A_full_99_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_11",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/A_full_77_replay.mp4",
+      "right": "../replays/D_random_intent_11_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "D_random_intent_11"
+      }
+    },
+    {
+      "left": "../replays/A_full_55_replay.mp4",
+      "right": "../replays/C_no_connectome_111_replay.mp4",
+      "truth": {
+        "left": "A_full",
+        "right": "C_no_connectome_111"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_44_replay.mp4",
+      "right": "../replays/A_full_55_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_44",
+        "right": "A_full"
+      }
+    },
+    {
+      "left": "../replays/B_no_laya_33_replay.mp4",
+      "right": "../replays/A_full_22_replay.mp4",
+      "truth": {
+        "left": "B_no_laya_33",
+        "right": "A_full"
+      }
+    }
+  ]
+}
