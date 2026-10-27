@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pi Swarm 工程报告</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.7;padding:2rem;max-width:1100px;margin:0 auto}
+.hero{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border:1px solid #334155;border-radius:16px;padding:2.5rem;margin-bottom:2rem}
+.hero h1{font-size:2.2rem;background:linear-gradient(90deg,#60a5fa,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+.hero .sub{color:#94a3b8;font-size:1rem}
+.badge{display:inline-block;padding:.2rem .8rem;border-radius:99px;font-size:.75rem;font-weight:600;margin:.3rem .3rem 0 0}
+.badge.blue{background:#1e3a5f;color:#60a5fa}
+.badge.green{background:#052e16;color:#4ade80}
+.badge.red{background:#450a0a;color:#f87171}
+.badge.yellow{background:#422006;color:#fbbf24}
+.section{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.8rem;margin-bottom:1.5rem}
+.section h2{font-size:1.3rem;color:#60a5fa;margin-bottom:1rem;border-bottom:1px solid #334155;padding-bottom:.5rem}
+.section h3{font-size:1.05rem;color:#818cf8;margin-bottom:.6rem}
+table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.88rem}
+th{background:#334155;padding:.6rem .8rem;text-align:left;color:#94a3b8;font-weight:600;border:1px solid #475569}
+td{padding:.5rem .8rem;border:1px solid #334155;color:#cbd5e1}
+tr:nth-child(even){background:#1e293b}
+.pass{color:#4ade80;font-weight:600}.fail{color:#f87171;font-weight:600}.warn{color:#fbbf24;font-weight:600}
+.code{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:1rem;font-family:'SF Mono','Fira Code',monospace;font-size:.82rem;color:#7dd3fc;overflow-x:auto;margin:.8rem 0;white-space:pre}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:1rem 0}
+.stat{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.2rem;text-align:center}
+.stat .num{font-size:2rem;font-weight:700;color:#60a5fa}
+.stat .label{font-size:.8rem;color:#94a3b8;margin-top:.3rem}
+.footer{text-align:center;color:#475569;font-size:.8rem;margin-top:2rem;padding-top:1rem;border-top:1px solid #334155}
+.arch{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}
+.arch-box{flex:1;min-width:200px;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1rem}
+.arch-box h4{color:#818cf8;font-size:.9rem;margin-bottom:.5rem}
+.arch-box ul{list-style:none;padding:0}
+.arch-box li{color:#94a3b8;font-size:.8rem;padding:.2rem 0;border-bottom:1px dotted #334155}
+.flow{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
+.flow-step{background:#1e3a5f;color:#60a5fa;padding:.4rem 1rem;border-radius:6px;font-size:.85rem;white-space:nowrap}
+.flow-arrow{color:#475569;font-size:1rem}
+</style>
+</head>
+<body>
+
+<div class="hero">
+<h1>🐝 Pi Swarm</h1>
+<div class="sub">文件原生多智能体协调运行时 · 为 oh-my-pi 打造</div>
+<div style="margin-top:.8rem">
+<span class="badge blue">TypeScript</span>
+<span class="badge blue">18 Domain Tools</span>
+<span class="badge blue">7 Slash Commands</span>
+<span class="badge blue">6 Built-in Roles</span>
+<span class="badge green">264 Test Cases</span>
+<span class="badge red">D-5 P0 Release Blocking</span>
+</div>
+</div>
+
+<div class="section">
+<h2>📋 项目概述</h2>
+<p style="color:#94a3b8">Pi Swarm 是一个<b style="color:#e2e8f0">零外部服务</b>的多智能体协调运行时——同一工作区内的多个独立 Pi 会话，通过共享拉取式任务池、原子文件认领、追加式 JSONL 事件流和 Markdown 黑板，以专职角色协作完成工作。没有监督 LLM，没有代理之间的直接调用——一切协调都发生在 <code style="color:#7dd3fc">.pi/swarm/</code> 目录下的文件里。</p>
+<div class="stat-grid">
+<div class="stat"><div class="num">264</div><div class="label">测试用例</div></div>
+<div class="stat"><div class="num">34</div><div class="label">测试文件</div></div>
+<div class="stat"><div class="num">6</div><div class="label">内置角色</div></div>
+<div class="stat"><div class="num">0</div><div class="label">外部服务依赖</div></div>
+</div>
+</div>
+
+<div class="section">
+<h2>🏗️ 核心架构</h2>
+<div class="arch">
+<div class="arch-box"><h4>🎯 任务池</h4><ul><li>拉取式·非推送</li><li>O_EXCL 原子认领</li><li>YAML + Markdown 持久化</li><li>竞争 already_claimed = 正常</li></ul></div>
+<div class="arch-box"><h4>📡 事件流</h4><ul><li>单写者 JSONL</li><li>at-least-once 消费</li><li>按字节游标</li><li>事件≠所有权</li></ul></div>
+<div class="arch-box"><h4>📝 黑板</h4><ul><li>Markdown 共享知识</li><li>按角色 glob 策略</li><li>读写权限强制</li><li>决策/发现/评审</li></ul></div>
+<div class="arch-box"><h4>🔄 恢复</h4><ul><li>心跳过期+进程死亡双条件</li><li>孤儿任务自动回收</li><li>/swarm doctor 诊断</li><li>/swarm recover 修复</li></ul></div>
+</div>
+<h3>任务状态机</h3>
+<div class="code">open ──原子认领──▶ claimed ──显式start──▶ in_progress ──▶ done | failed
+                     │                       │  ▲
+                     │                       ▼  │ 义务完成自动恢复
+                     │                     blocked ──▶ abandoned ──▶ open</div>
+<h3>拓扑感知调度 (Boundary Gate)</h3>
+<div class="code">硬约束(能力/排除) → Primary专家在线? → 只允许Primary
+                    └▶ 无Primary,Secondary在线? → 只允许Secondary
+                       └▶ 都无且允许fallback → 回退池
+                          └▶ 否则 → UNSERVICEABLE(显式暴露,绝不静默)</div>
+</div>
+
+<div class="section">
+<h2>🧪 测试结果（264 用例 / 34 文件）</h2>
+<table>
+<tr><th>测试层级</th><th>用例数</th><th>结果</th><th>说明</th></tr>
+<tr><td>G0 单元测试</td><td>~180</td><td class="pass">✅ 全绿</td><td>3次连跑全绿（首次1个flake已定位为测试基建D-1，非产品缺陷）</td></tr>
+<tr><td>G1-G2 集成测试</td><td>~50</td><td class="pass">✅ 全绿</td><td>含4真实子进程并发认领竞争（concurrent-claim.test.ts）</td></tr>
+<tr><td>无头域级 e2e</td><td>17</td><td class="pass">✅ 17/17</td><td>init→创建→发现→竞争claim→生命周期→广播→cursor重放→漂移修复</td></tr>
+<tr><td>G3 真实OMP验收</td><td>—</td><td class="warn">⚠️ 部分</td><td>扩展加载✓ 工具注册✓ 未绑定防护✓ / 斜杠命令TUI验证❌</td></tr>
+<tr><td>G4 性能规模</td><td>—</td><td class="warn">⚠️ 混合</td><td>2000任务创建13.5s✓ / 热态p95=345ms超阈值❌</td></tr>
+<tr><td>对抗性不变量</td><td>8</td><td class="pass">✅ 8/8</td><td>伪造事件/删除events/伪造claimId/路径穿越全部阻断</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>⚡ 性能实测</h2>
+<table>
+<tr><th>指标</th><th>实测值</th><th>阈值</th><th>判定</th></tr>
+<tr><td>创建 2000 任务</td><td>13.5s（≈148/s）</td><td>—</td><td class="pass">✅</td></tr>
+<tr><td>热态 task_list (2000任务)</td><td>p50=275ms / p95=345ms</td><td>p95&lt;300ms</td><td class="fail">❌ D-2</td></tr>
+<tr><td>追加 10k 事件</td><td>0.71s</td><td>—</td><td class="pass">✅</td></tr>
+<tr><td>cursor 消费 12k 事件</td><td>0.06s 全量无丢失</td><td>&lt;5s</td><td class="pass">✅ 极优</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>🛡️ 对抗性不变量抽检（全通过）</h2>
+<table>
+<tr><th>检查项</th><th>结果</th></tr>
+<tr><td>伪造"任务已分配"事件后，其他Agent仍成功claim</td><td class="pass">✅ 事件永不授予所有权</td></tr>
+<tr><td>删除整个events/目录后claim归属完整</td><td class="pass">✅ claim文件即所有权</td></tr>
+<tr><td>删除events/后任务池精确可发现（2000/2000）</td><td class="pass">✅ 事件非任务</td></tr>
+<tr><td>跨实例伪造claimId调用complete</td><td class="pass">✅ 拒绝</td></tr>
+<tr><td>路径穿越 ../, 绝对路径, URL编码, 符号链接</td><td class="pass">✅ 8/8 全部阻断</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>🐛 缺陷清单</h2>
+<table>
+<tr><th>ID</th><th>级别</th><th>摘要</th><th>状态</th></tr>
+<tr><td><b style="color:#f87171">D-5</b></td><td><span class="badge red">P0 阻断</span></td><td>宿主契约：omp传给registerCommand的args是<b>字符串</b>，代码按<b>string[]</b>消费 → 所有/swarm命令在真实TUI不可用</td><td>待修复</td></tr>
+<tr><td><b style="color:#fbbf24">D-6</b></td><td><span class="badge yellow">P1</span></td><td>宿主契约：customType对象vs字符串不匹配 → 会话重启后角色绑定丢失</td><td>待修复</td></tr>
+<tr><td><b style="color:#94a3b8">D-2</b></td><td><span class="badge yellow">P2</span></td><td>性能：task_list无缓存，2000任务热态p95=345ms超300ms阈值</td><td>待优化</td></tr>
+<tr><td><b style="color:#94a3b8">D-1</b></td><td>P1(测试)</td><td>测试基建：FakeTimer用真实sleep等待fs I/O → 偶发flake</td><td>待修复</td></tr>
+<tr><td><b style="color:#94a3b8">D-3</b></td><td>P3</td><td>空闲轮询退避未实现（MAY级别）</td><td>可选</td></tr>
+</table>
+<h3 style="color:#f87171;margin-top:1rem">总裁定：不通过（发布阻断）—— 因 D-5 P0</h3>
+<p style="color:#94a3b8;font-size:.85rem">D-5修复方案已明确：注册边界归一化 typeof args === "string" ? split : args，预计改动约3行代码。修复后需补真实宿主回归。</p>
+</div>
+
+<div class="section">
+<h2>📁 源码结构</h2>
+<div class="code">src/
+├── domain/          # 纯域逻辑（零OMP依赖）
+│   ├── task-service.ts      # 任务生命周期
+│   ├── event-service.ts     # 事件流
+│   ├── candidate-resolver.ts # Boundary Gate
+│   ├── topology.ts          # 拓扑感知
+│   ├── recovery-service.ts  # 孤儿回收
+│   └── policy-service.ts    # 权限策略
+├── storage/         # 文件系统持久化
+├── protocol/        # 类型定义与协议
+├── runtime/         # 双循环调度器
+├── extension/       # OMP扩展适配层
+│   ├── tools.ts             # 18个域工具
+│   ├── commands.ts          # 7个/swarm命令
+│   └── binding.ts           # 角色绑定
+├── templates/       # 角色清单模板
+└── util/            # 原子文件等工具</div>
+</div>
+
+<div class="section">
+<h2>📦 项目位置</h2>
+<table>
+<tr><th>路径</th><th>说明</th></tr>
+<tr><td>~/aiworld/pi-swarm/</td><td>主工程（1.0-alpha.1，含完整测试与验收报告）</td></tr>
+<tr><td>~/pi-swarm2.0/pi-swarm/</td><td>2.0 版本（迭代中）</td></tr>
+<tr><td>~/aiworld/pi-swarm-glm/</td><td>GLM 适配分支</td></tr>
+</table>
+</div>
+
+<div class="footer">
+Pi Swarm Project Report · Generated by Chief of Staff · 2026-10-15<br>
+Path: ~/aiworld/pi-swarm/ · Language: TypeScript · License: Open Source<br>
+验收报告: docs/history/pi-swarm-1.0-acceptance-report.md · 架构图: docs/architecture/
+</div>
+
+</body>
+</html>
